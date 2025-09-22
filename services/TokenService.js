@@ -1,0 +1,44 @@
+const crypto = require("crypto");
+const TokenRepository = require("../repositories/TokenRepository");
+
+class TokenService {
+    // генеруємо випадковий токен, зберігаємо SHA-256 у БД
+    async mintSingleUseToken({ userId, type, ttlMinutes = 60, meta = null }) {
+        // інвалідовуємо попередні токени цього типу
+        await TokenRepository.invalidateOld(userId, type);
+
+        const raw = crypto.randomBytes(32).toString("hex"); // 64 символи
+        const hash = crypto.createHash("sha256").update(raw).digest("hex"); // теж 64 символи
+        const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+        await TokenRepository.create({
+            tokenHash: hash,
+            userId,
+            type,
+            meta,
+            expiresAt
+        });
+
+        return raw; // це сирий токен, підставляємо його в лінк користувачу
+    }
+
+    async consumeToken(rawToken, expectedType) {
+        const hash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const rec = await TokenRepository.findActiveByHash(hash);
+        if (!rec) throw new Error("Token is invalid or expired");
+        if (rec.type !== expectedType) throw new Error("Token type mismatch");
+
+        await TokenRepository.markUsed(hash);
+        return rec; // містить user_id, meta, тощо
+    }
+
+    async peek(rawToken, expectedType) {
+        const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
+        const rec = await TokenRepository.findActiveByHash(hash);
+        if (!rec) throw new Error("Token is invalid or expired");
+        if (rec.type !== expectedType) throw new Error("Token type mismatch");
+        return rec; // НЕ позначаємо used
+    }
+}
+
+module.exports = new TokenService();
