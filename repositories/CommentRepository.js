@@ -2,10 +2,6 @@ const pool = require("../db/connection");
 const Comment = require("../models/Comment");
 
 class CommentRepository {
-    // async findByPost(postId) {
-    //     const [rows] = await pool.query("SELECT * FROM comments WHERE post_id = ?", [postId]);
-    //     return rows.map(r => this.#mapComment(r));
-    // }
     async findByPost(postId, { onlyActive = false } = {}) {
         const where = onlyActive ? "AND status = 'active'" : "";
         const [rows] = await pool.query(`SELECT * FROM comments WHERE post_id = ? ${where} ORDER BY publish_date ASC`, [postId]);
@@ -25,17 +21,6 @@ class CommentRepository {
         return new Comment({ id: result.insertId, postId, authorId, content });
     }
 
-    // async update(id, fields) {
-    //   const keys = Object.keys(fields);
-    //   if (keys.length === 0) return null;
-
-    //   const setSql = keys.map(k => `${k} = ?`).join(", ");
-    //   const values = Object.values(fields);
-    //   values.push(id);
-
-    //   await pool.query(`UPDATE comments SET ${setSql}, updated_at = NOW() WHERE id = ?`, values);
-    //   return this.findById(id);
-    // }
     async updateStatus(id, status) {
         await pool.query('UPDATE comments SET status = ?, updated_at = NOW() WHERE id = ?', [status, id]);
         return this.findById(id);

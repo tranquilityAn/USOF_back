@@ -42,7 +42,6 @@ class AuthController {
         }
     }
 
-    // ====== НОВЕ ======
     async verifyEmail(req, res, next) {
         try {
             const { token } = req.params;
@@ -63,16 +62,6 @@ class AuthController {
         }
     }
 
-    // async confirmPasswordReset(req, res, next) {
-    //     try {
-    //         const { confirm_token } = req.params;
-    //         const { newPassword } = req.body;
-    //         const result = await AuthService.confirmPasswordReset(confirm_token, newPassword);
-    //         res.json(result);
-    //     } catch (err) {
-    //         next(err);
-    //     }
-    // }
     async validatePasswordResetToken(req, res, next) {
         try {
             const { token } = req.params;

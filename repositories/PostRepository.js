@@ -32,18 +32,6 @@ class PostRepository {
         return new Post({ id: result.insertId, title, content, authorId });
     }
 
-    // async update(id, fields) {
-    //   const keys = Object.keys(fields);
-    //   if (keys.length === 0) return null;
-
-    //   const setSql = keys.map(k => `${this.#toDbCol(k)} = ?`).join(", ");
-    //   const values = keys.map(k => fields[k]);
-    //   values.push(id);
-
-    //   await pool.query(`UPDATE posts SET ${setSql}, updated_at = NOW() WHERE id = ?`, values);
-    //   return this.findById(id);
-    // }
-
     async delete(id) {
         await pool.query("DELETE FROM posts WHERE id = ?", [id]);
     }
@@ -69,22 +57,6 @@ class PostRepository {
         );
         return rows;
     }
-
-    // async findLikes(postId) {
-    //     const [rows] = await pool.query(
-    //         `SELECT * FROM likes WHERE post_id = ?`,
-    //         [postId]
-    //     );
-    //     return rows;
-    // }
-
-    // async findComments(postId) {
-    //     const [rows] = await pool.query(
-    //         `SELECT * FROM comments WHERE post_id = ?`,
-    //         [postId]
-    //     );
-    //     return rows;
-    // } etoj hujnej dolzen zanimatsa ne ty
 
     async update(id, fields) {
         const keys = Object.keys(fields).filter(k => fields[k] !== undefined);

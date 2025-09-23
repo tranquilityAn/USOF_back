@@ -1,27 +1,27 @@
 const BaseModel = require('./BaseModel');
 
 class User extends BaseModel {
-  constructor({ id, login, passwordHash, fullName, email, emailVerified = false, profilePicture = null, rating = 0, role = "user" }) {
-    super(id);
-    this.login = login;
-    this.passwordHash = passwordHash;
-    this.fullName = fullName;
-    this.email = email;
-    this.emailVerified = emailVerified;
-    this.profilePicture = profilePicture;
-    this.rating = rating;
-    this.role = role;
-  }
+    constructor({ id, login, passwordHash, fullName, email, emailVerified = false, profilePicture = null, rating = 0, role = "user" }) {
+        super(id);
+        this.login = login;
+        this.passwordHash = passwordHash;
+        this.fullName = fullName;
+        this.email = email;
+        this.emailVerified = emailVerified;
+        this.profilePicture = profilePicture;
+        this.rating = rating;
+        this.role = role;
+    }
 
-  isAdmin() {
-    return this.role === "admin";
-  }
+    isAdmin() {
+        return this.role === "admin";
+    }
 
-  toJSON() {
-    const safeObject = super.toJSON();
-    delete safeObject.passwordHash;
-    return safeObject;
-  }
+    toJSON() {
+        const safeObject = super.toJSON();
+        delete safeObject.passwordHash;
+        return safeObject;
+    }
 }
 
 module.exports = User;

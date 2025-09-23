@@ -36,7 +36,6 @@ class AuthService {
         }
     }
 
-    // === НОВЕ: Email verification ===
     async sendEmailVerification(user) {
         const raw = await TokenService.mintSingleUseToken({
             userId: user.id,
@@ -53,7 +52,6 @@ class AuthService {
         return { message: "Email verified" };
     }
 
-    // === НОВЕ: Password reset ===
     async requestPasswordReset(email) {
         const user = await UserService.findByEmail(email);
         // Не розкриваємо існування акаунта
@@ -68,15 +66,6 @@ class AuthService {
         return { message: "If account exists, email was sent" };
     }
 
-    // async confirmPasswordReset(rawToken, newPassword) {
-    //     // можна додати перевірку мінімальної довжини пароля тут
-    //     if (!newPassword || newPassword.length < 6) {
-    //         throw new Error("Password must be at least 6 characters");
-    //     }
-    //     const rec = await TokenService.consumeToken(rawToken, "password_reset");
-    //     await UserService.updatePassword(rec.user_id, newPassword);
-    //     return { message: "Password has been reset" };
-    // }
     async peekPasswordResetToken(rawToken) {
         // читаємо, але НЕ позначаємо used
         const rec = await TokenService.peek(rawToken, 'password_reset');

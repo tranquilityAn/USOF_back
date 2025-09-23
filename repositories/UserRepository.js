@@ -61,10 +61,7 @@ class UserRepository {
         await pool.query("UPDATE users SET password_hash = ? WHERE id = ?", [passwordHash, userId]);
     }
 
-    // Приватные помощники
-
     #mapRow(row) {
-        // мапим snake_case -> camelCase для модели
         return {
             id: row.id,
             login: row.login,
@@ -79,7 +76,6 @@ class UserRepository {
     }
 
     #toDbCol(field) {
-        // простой маппер для апдейтов (минимум нужного)
         const map = {
             login: "login",
             passwordHash: "password_hash",
