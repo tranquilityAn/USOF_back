@@ -32,6 +32,10 @@ class UserRepository {
     }
 
     async update(id, fields) {
+        if (!fields || typeof fields !== 'object') {
+            return this.findById(id);
+        }
+
         const keys = Object.keys(fields);
         if (keys.length === 0) return await this.findById(id);
 
@@ -39,18 +43,13 @@ class UserRepository {
         const values = keys.map(k => fields[k]);
         values.push(id);
 
-        await pool.query(`UPDATE users SET ${setSql} WHERE id = ?`, values);
+        await pool.query(`UPDATE users SET ${setSql}, updated_at = NOW() WHERE id = ?`, values);
 
         return this.findById(id);
     }
 
     async delete(id) {
         await pool.query("DELETE FROM users WHERE id = ?", [id]);
-    }
-
-    async findByEmail(email) {
-        const [rows] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
-        return rows[0] ? new User(this.#mapRow(rows[0])) : null;
     }
 
     async setEmailVerified(userId) {
@@ -72,6 +71,8 @@ class UserRepository {
             profilePicture: row.profile_picture,
             rating: row.rating,
             role: row.role,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
         };
     }
 

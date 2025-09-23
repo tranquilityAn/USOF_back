@@ -1,7 +1,19 @@
 const BaseModel = require('./BaseModel');
 
 class User extends BaseModel {
-    constructor({ id, login, passwordHash, fullName, email, emailVerified = false, profilePicture = null, rating = 0, role = "user" }) {
+    constructor({ 
+        id, 
+        login, 
+        passwordHash, 
+        fullName, 
+        email, 
+        emailVerified = false, 
+        profilePicture = null, 
+        rating = 0, 
+        role = "user",
+        createdAt = null,
+        updatedAt = null
+    }) {
         super(id);
         this.login = login;
         this.passwordHash = passwordHash;
@@ -11,6 +23,8 @@ class User extends BaseModel {
         this.profilePicture = profilePicture;
         this.rating = rating;
         this.role = role;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
 
     isAdmin() {

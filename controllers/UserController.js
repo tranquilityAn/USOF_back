@@ -37,6 +37,11 @@ class UserController {
         try {
             const { user_id } = req.params;
             const data = req.body;
+
+            if (!data || typeof data !== 'object' || Array.isArray(data)) {
+                return res.status(400).json({ error: "Expected JSON body with fields to update" });
+            }
+
             const updatedUser = await UserService.update(user_id, data);
             res.json(updatedUser.toJSON());
         } catch (err) {
@@ -54,12 +59,35 @@ class UserController {
         }
     }
 
+    // async updateAvatar(req, res, next) {
+    //     try {
+    //         const { file } = req; // при использовании multer
+    //         const userId = req.user.id;
+    //         const updatedUser = await UserService.updateAvatar(userId, file.path);
+    //         res.json(updatedUser.toJSON());
+    //     } catch (err) {
+    //         next(err);
+    //     }
+    // }
+
     async updateAvatar(req, res, next) {
         try {
-            const { file } = req; // при использовании multer
             const userId = req.user.id;
-            const updatedUser = await UserService.updateAvatar(userId, file.path);
-            res.json(updatedUser.toJSON());
+            const remove = (req.body && (req.body.remove === true || req.body.remove === 'true')) || false;
+
+            // Видалення без файлу
+            if (remove && !req.file) {
+                await UserService.removeAvatar(userId);
+                return res.status(204).end();
+            }
+
+            // Завантаження/заміна
+            if (req.file && req.file.path) {
+                const updatedUser = await UserService.updateAvatar(userId, req.file);
+                return res.json(updatedUser.toJSON());
+            }
+
+            return res.status(400).json({ error: 'Provide file field "avatar" or body {"remove": true}' });
         } catch (err) {
             next(err);
         }
