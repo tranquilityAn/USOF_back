@@ -2,39 +2,52 @@ const postRepo = require('../repositories/PostRepository');
 const commentService = require('./CommentService');
 const categoryService = require('./CategoryService');
 const likeService = require('./LikeService');
+const favoriteRepo = require('../repositories/FavoriteRepository');
 
 class PostService {
-    // --- POSTS ---
-    async getAllPosts({ page = 1, limit = 10, isAdmin = false}) {
+    async getAllPosts({ page = 1, limit = 10, isAdmin = false, currentUserId = null }) {
         const offset = (page - 1) * limit;
-        const onlyActive = !isAdmin;
-        const [items, total] = await Promise.all([
-            postRepo.findAll({ limit, offset, onlyActive }),
-            postRepo.countAll({ onlyActive }),
-        ]);
-        //const posts = await postRepo.findAll({ limit, offset });
-        //return posts;
-        const totalPages = Math.ceil(total / limit) || 1;
-        return { page, limit, total, totalPages, items};
-    }
 
-    async getPostById(postId, {isAdmin = false } = {}) {
-        //const post = await postRepo.findById(postId);
-        const post = isAdmin ? await postRepo.findById(postId) : await postRepo.findByIdPublic(postId, { allowInactive: false });
-        if (!post) {
-            throw new Error('Post not found');
+        const [items, total] = await Promise.all([
+            postRepo.findAll({ limit, offset, onlyActive: !isAdmin }), // як у тебе було
+            postRepo.countAll({ onlyActive: !isAdmin }),
+        ]);
+
+        // Додаємо isFavorite, якщо юзер відомий
+        if (currentUserId) {
+            const ids = items.map(p => p.id);
+            const favMap = await favoriteRepo.existsForMany(currentUserId, ids);
+            items.forEach(p => { p.isFavorite = !!favMap[p.id]; });
+        } else {
+            items.forEach(p => { p.isFavorite = false; });
         }
 
-        const categories = await postRepo.findCategories(postId);
-        const likes = await likeService.getLikes('post', postId);
-        const comments = await commentService.getCommentsByPost(postId);
+        const totalPages = Math.ceil(total / limit) || 1;
+        return { page, limit, total, totalPages, items };
+    }
 
-        return {
-            ...post.toJSON(),
-            categories,
-            likesCount: likes.length,
-            commentsCount: comments.length,
-        };
+    async getPostById(postId, { currentUserId = null, isAdmin = false } = {}) {
+        const post = await postRepo.findById(postId);
+        if (!post) {
+            const e = new Error("Post not found");
+            e.status = 404;
+            throw e;
+        }
+
+        // Перевірка видимості: юзер бачить active інших або свої (навіть inactive)
+        if (!isAdmin) {
+            const canSee = post.status === 'active' || post.authorId === currentUserId;
+            if (!canSee) {
+                const e = new Error("Post not available");
+                e.status = 403;
+                throw e;
+            }
+        }
+
+        // isFavorite для конкретного поста
+        post.isFavorite = currentUserId ? await favoriteRepo.exists(currentUserId, postId) : false;
+
+        return post;
     }
 
     async getCategories(postId) {
@@ -55,8 +68,6 @@ class PostService {
         if (categories.length > 0) {
             await postRepo.addCategories(post.id, categories);
         }
-
-        //const createdPost = await this.getPostById(post.id); 
 
         return post;
     }

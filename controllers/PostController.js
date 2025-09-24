@@ -5,16 +5,25 @@ class PostController {
         try {
             const { page = 1, limit = 10 } = req.query;
             const isAdmin = req.user?.role === 'admin';
-            const result = await PostService.getAllPosts({ page: Number(page), limit: Number(limit), isAdmin });
-            //const posts = await PostService.getAllPosts({ page: Number(page), limit: Number(limit) });
+            const currentUserId = req.user?.id || null;
+
+            const result = await PostService.getAllPosts({
+                page: Number(page),
+                limit: Number(limit),
+                isAdmin,
+                currentUserId,
+            });
+
             res.json({
                 page: result.page,
                 limit: result.limit,
                 total: result.total,
                 totalPages: result.totalPages,
-                items: result.items.map(p => p.toJSON())
+                items: result.items.map(p => {
+                    const base = (typeof p.toJSON === 'function') ? p.toJSON() : p;
+                    return { ...base, isFavorite: !!p.isFavorite };
+                }),
             });
-            //res.json(posts.map(p => p.toJSON()));
         } catch (err) {
             next(err);
         }
@@ -23,8 +32,16 @@ class PostController {
     async getPost(req, res, next) {
         try {
             const { post_id } = req.params;
-            const post = await PostService.getPostById(post_id);
-            res.json(post);
+            const isAdmin = req.user?.role === 'admin';
+            const currentUserId = req.user?.id || null;
+
+            const post = await PostService.getPostById(Number(post_id), {
+                currentUserId,
+                isAdmin,
+            });
+
+            const body = (typeof post.toJSON === 'function') ? post.toJSON() : post;
+            res.json({ ...body, isFavorite: !!post.isFavorite });
         } catch (err) {
             next(err);
         }
@@ -56,7 +73,7 @@ class PostController {
             });
             res.json(result);
         }
-        catch(err) {
+        catch (err) {
             next(err);
         }
     }
@@ -67,7 +84,7 @@ class PostController {
             await PostService.deletePost(post_id, req.user.id);
             res.json({ message: "Post deleted successfully" });
         } catch (err) {
-                res.status(err.status || 500).json({ message: err.message || 'Internal error' });
+            res.status(err.status || 500).json({ message: err.message || 'Internal error' });
         }
     }
 

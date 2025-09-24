@@ -6,19 +6,17 @@ class Post extends BaseModel {
         title,
         content,
         authorId,
-        //categories = [],
         publishDate = new Date(),
         //updatedAt = new Date(),
-        //likesCount = 0,
+        status = 'active',
     }) {
         super(id);
         this.title = title;
         this.content = content;
         this.authorId = authorId;
-        //this.categories = categories; // массив строк или id категорий
         this.publishDate = publishDate;
         //this.updatedAt = updatedAt;
-        //this.likesCount = likesCount;
+        this.status = status;
     }
 
     toJSON() {
@@ -28,10 +26,9 @@ class Post extends BaseModel {
             title: obj.title,
             content: obj.content,
             authorId: obj.authorId,
-            //categories: obj.categories,
             publishDate: obj.publishDate,
             //updatedAt: obj.updatedAt,
-            //likesCount: obj.likesCount,
+            status: this.status,
         };
     }
 }

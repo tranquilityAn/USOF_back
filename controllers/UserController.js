@@ -59,17 +59,6 @@ class UserController {
         }
     }
 
-    // async updateAvatar(req, res, next) {
-    //     try {
-    //         const { file } = req; // при использовании multer
-    //         const userId = req.user.id;
-    //         const updatedUser = await UserService.updateAvatar(userId, file.path);
-    //         res.json(updatedUser.toJSON());
-    //     } catch (err) {
-    //         next(err);
-    //     }
-    // }
-
     async updateAvatar(req, res, next) {
         try {
             const userId = req.user.id;
