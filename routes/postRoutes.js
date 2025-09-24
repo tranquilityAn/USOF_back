@@ -19,6 +19,8 @@ router.use('/:post_id/comments', commentRoutes); // GET /api/posts/:post_id/comm
 router.post('/', authMiddleware, PostController.createPost); // POST /api/posts
 router.patch('/:post_id', authMiddleware, PostController.updatePost); // PATCH /api/posts/:post_id 
 router.delete('/:post_id', authMiddleware, PostController.deletePost); // DELETE /api/posts/:post_id
+router.post('/:post_id/lock', authMiddleware, PostController.lock);
+router.delete('/:post_id/lock', authMiddleware, PostController.unlock);
 
 router.use("/:post_id/like", (req, res, next) => {
     req.entityType = "post";

@@ -54,6 +54,36 @@ class CommentController {
             next(err);
         }
     }
+
+    async lock(req, res, next) {
+        try {
+            const { post_id, comment_id } = req.params;
+            const postId = Number(post_id);
+            const commentId = Number(comment_id);
+            if (!Number.isInteger(postId) || !Number.isInteger(commentId)) {
+                const err = new Error('Invalid post_id or comment_id'); err.status = 400; throw e;
+            }
+            const c = await CommentService.lockComment(postId, commentId, req.user);
+            res.json(c);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async unlock(req, res, next) {
+        try {
+            const { post_id, comment_id } = req.params;
+            const postId = Number(post_id);
+            const commentId = Number(comment_id);
+            if (!Number.isInteger(postId) || !Number.isInteger(commentId)) {
+                const err = new Error('Invalid post_id or comment_id'); err.status = 400; throw e;
+            }
+            const c = await CommentService.unlockComment(postId, commentId, req.user);
+            res.json(c);
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new CommentController();

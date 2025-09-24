@@ -97,6 +97,24 @@ class PostController {
             next(err);
         }
     }
+
+    async lock(req, res, next) {
+        try {
+            const post = await PostService.lockPost(+req.params.post_id, req.user);
+            res.json(post);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async unlock(req, res, next) {
+        try {
+            const post = await PostService.unlockPost(+req.params.post_id, req.user);
+            res.json(post);
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new PostController();

@@ -29,7 +29,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/favorites', favoriteRoutes);
-
+app.use('/api/posts/:post_id/comments', commentRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 // global error handler

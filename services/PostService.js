@@ -153,6 +153,30 @@ class PostService {
         await postRepo.delete(postId);
         return true;
     }
+
+    async lockPost(postId, currentUser) {
+        const post = await postRepo.findById(postId);
+        if (!post) { const e = new Error('Post not found'); e.status = 404; throw e; }
+
+        const isOwner = post.authorId === currentUser.id;
+        const isAdmin = currentUser.role === 'admin';
+        if (!isOwner && !isAdmin) { const e = new Error('Forbidden'); e.status = 403; throw e; }
+
+        await postRepo.update(postId, { lockedByAuthor: 1 });
+        return await postRepo.findById(postId);
+    }
+
+    async unlockPost(postId, currentUser) {
+        const post = await postRepo.findById(postId);
+        if (!post) { const e = new Error('Post not found'); e.status = 404; throw e; }
+
+        const isOwner = post.authorId === currentUser.id;
+        const isAdmin = currentUser.role === 'admin';
+        if (!isOwner && !isAdmin) { const e = new Error('Forbidden'); e.status = 403; throw e; }
+
+        await postRepo.update(postId, { lockedByAuthor: 0 });
+        return await postRepo.findById(postId);
+    }
 }
 
 module.exports = new PostService();

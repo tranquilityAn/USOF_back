@@ -9,6 +9,7 @@ class Post extends BaseModel {
         publishDate = new Date(),
         //updatedAt = new Date(),
         status = 'active',
+        lockedByAuthor,
     }) {
         super(id);
         this.title = title;
@@ -17,6 +18,7 @@ class Post extends BaseModel {
         this.publishDate = publishDate;
         //this.updatedAt = updatedAt;
         this.status = status;
+        this.lockedByAuthor = !!lockedByAuthor;
     }
 
     toJSON() {
@@ -29,6 +31,7 @@ class Post extends BaseModel {
             publishDate: obj.publishDate,
             //updatedAt: obj.updatedAt,
             status: this.status,
+            lockedByAuthor: obj.lockedByAuthor,
         };
     }
 }

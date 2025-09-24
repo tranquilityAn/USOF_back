@@ -4,7 +4,7 @@ const Comment = require("../models/Comment");
 class CommentRepository {
     async findByPost(postId, { onlyActive = false } = {}) {
         const where = onlyActive ? "AND status = 'active'" : "";
-        const [rows] = await pool.query(`SELECT * FROM comments WHERE post_id = ? ${where} ORDER BY publish_date ASC`, [postId]);
+        const [rows] = await pool.query(`SELECT * FROM comments WHERE post_id = ? ${where} ORDER BY locked DESC, publish_date ASC`, [postId]);
         return rows.map(r => this.#mapComment(r));
     }
 
@@ -38,6 +38,17 @@ class CommentRepository {
         return c;
     }
 
+    async update(id, fields) {
+        const keys = Object.keys(fields).filter(k => fields[k] !== undefined);
+        if (keys.length === 0) return this.findById(id);
+
+        const setSql = keys.map(k => `${this.#toDbCol(k)} = ?`).join(", ");
+        const values = keys.map(k => fields[k]); values.push(id);
+
+        await pool.query(`UPDATE comments SET ${setSql}, updated_at = NOW() WHERE id = ?`, values);
+        return this.findById(id);
+    }
+
     #mapComment(row) {
         return new Comment({
             id: row.id,
@@ -46,7 +57,17 @@ class CommentRepository {
             content: row.content,
             publishDate: row.publish_date,
             //updatedAt: row.updated_at,
+            locked: row.locked === 1 || row.locked === true,
         });
+    }
+
+    #toDbCol(field) {
+        const map = {
+            content: "content",
+            status: "status",
+            locked: "locked", // <-- додати
+        };
+        return map[field] || field;
     }
 }
 

@@ -8,6 +8,7 @@ class Comment extends BaseModel {
         content,
         publishDate = new Date(),
         updatedAt = new Date(),
+        locked,
     }) {
         super(id);
         this.postId = postId;
@@ -15,6 +16,7 @@ class Comment extends BaseModel {
         this.content = content;
         this.publishDate = publishDate;
         this.updatedAt = updatedAt;
+        this.locked = !!locked;
     }
 
     toJSON() {
@@ -26,6 +28,7 @@ class Comment extends BaseModel {
             content: obj.content,
             publishDate: obj.publishDate,
             updatedAt: obj.updatedAt,
+            locked: obj.locked,
         };
     }
 }

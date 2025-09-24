@@ -3,11 +3,11 @@ const Post = require("../models/Post");
 const Comment = require("../models/Comment");
 
 class PostRepository {
-    // --- POSTS ---
     async findAll({ limit = 10, offset = 0 , onlyActive = false}) {
         const where = onlyActive ? "WHERE status = 'active'" : "";
         const [rows] = await pool.query(
-            `SELECT * FROM posts ${where} ORDER BY publish_date DESC LIMIT ? OFFSET ?`,
+            `SELECT * FROM posts ${where} ORDER BY locked_by_author DESC, publish_date DESC LIMIT ? OFFSET ?`
+            //`SELECT * FROM posts ${where} ORDER BY publish_date DESC LIMIT ? OFFSET ?`,
             [limit, offset]
         );
         return rows.map(r => this.#mapPost(r));
@@ -98,6 +98,7 @@ class PostRepository {
             createdAt: row.publish_date,
             //updatedAt: row.updated_at,
             likesCount: row.likes_count || 0,
+            lockedByAuthor: row.locked_by_author === 1 || row.locked_by_author === true,
         });
     }
 
@@ -106,6 +107,7 @@ class PostRepository {
             title: "title",
             content: "content",
             status: "status",
+            lockedByAuthor: "locked_by_author",
         };
         return map[field] || field;
     }
