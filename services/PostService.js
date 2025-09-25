@@ -5,21 +5,26 @@ const likeService = require('./LikeService');
 const favoriteRepo = require('../repositories/FavoriteRepository');
 
 class PostService {
-    async getAllPosts({ page = 1, limit = 10, isAdmin = false, currentUserId = null }) {
+    async getAllPosts({ page = 1, limit = 10, isAdmin = false, currentUserId = null, sortBy = 'date', sortOrder = 'desc', filters = {} }) {
+        console.log('S:', { sortBy, sortOrder, filters });
         const offset = (page - 1) * limit;
 
+        const effectiveFilters = { ...filters };
+        const onlyActive = !isAdmin;
+
         const [items, total] = await Promise.all([
-            postRepo.findAll({ limit, offset, onlyActive: !isAdmin }), // як у тебе було
-            postRepo.countAll({ onlyActive: !isAdmin }),
+            postRepo.findAll({ limit, offset, onlyActive, sortBy, sortOrder, filters: effectiveFilters }),
+            postRepo.countAll({ onlyActive, filters: effectiveFilters }),
         ]);
 
-        // Додаємо isFavorite, якщо юзер відомий
-        if (currentUserId) {
-            const ids = items.map(p => p.id);
-            const favMap = await favoriteRepo.existsForMany(currentUserId, ids);
-            items.forEach(p => { p.isFavorite = !!favMap[p.id]; });
+        if (currentUserId && items.length) {
+            const favoriteMap = await require('../repositories/FavoriteRepository').existsForMany(
+                currentUserId,
+                items.map(p => p.id)
+            );
+            items.forEach(p => (p.isFavorite = !!favoriteMap[p.id]));
         } else {
-            items.forEach(p => { p.isFavorite = false; });
+            items.forEach(p => (p.isFavorite = false));
         }
 
         const totalPages = Math.ceil(total / limit) || 1;

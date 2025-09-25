@@ -8,22 +8,26 @@ const likeRoutes = require('./likeRoutes');
 
 const router = express.Router({ mergeParams: true });
 
-// --- PUBLIC ROUTES ---
-router.get('/', optionalAuth,PostController.getAllPosts);                // GET /api/posts
-router.get('/:post_id', optionalAuth, PostController.getPost);            // GET /api/posts/:post_id 
-router.get('/:post_id/categories', PostController.getCategories); // GET /api/posts/:post_id/categories
+router.param('post_id', (req, res, next, val) => {
+    if (!/^\d+$/.test(val)) {
+        return res.status(400).json({ error: 'post_id must be an integer' });
+    }
+    next();
+});
 
-router.use('/:post_id/comments', commentRoutes); // GET /api/posts/:post_id/comments
+router.get('/', optionalAuth, PostController.getAllPosts); 
+router.get('/:post_id/categories', PostController.getCategories);
+router.use('/:post_id/comments', commentRoutes);
+router.get('/:post_id', optionalAuth, PostController.getPost);
 
-// --- PROTECTED ROUTES (требует JWT) ---
-router.post('/', authMiddleware, PostController.createPost); // POST /api/posts
-router.patch('/:post_id', authMiddleware, PostController.updatePost); // PATCH /api/posts/:post_id 
-router.delete('/:post_id', authMiddleware, PostController.deletePost); // DELETE /api/posts/:post_id
+router.post('/', authMiddleware, PostController.createPost);
+router.patch('/:post_id', authMiddleware, PostController.updatePost);
+router.delete('/:post_id', authMiddleware, PostController.deletePost);
 router.post('/:post_id/lock', authMiddleware, PostController.lock);
 router.delete('/:post_id/lock', authMiddleware, PostController.unlock);
 
-router.use("/:post_id/like", (req, res, next) => {
-    req.entityType = "post";
+router.use('/:post_id/like', (req, res, next) => {
+    req.entityType = 'post';
     req.entityId = Number(req.params.post_id);
     next();
 }, likeRoutes);

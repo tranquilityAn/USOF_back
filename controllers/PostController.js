@@ -3,15 +3,41 @@ const PostService = require("../services/PostService");
 class PostController {
     async getAllPosts(req, res, next) {
         try {
-            const { page = 1, limit = 10 } = req.query;
+            console.log('Q:', req.query);
+            const {
+                page = 1,
+                limit = 10,
+                sort = 'date',        // 'date' | 'likes'
+                order = 'desc',       // 'asc' | 'desc'
+                categories,           // "1,2,3" або масив
+                dateFrom,             // "2025-09-01"
+                dateTo,               // "2025-09-24"
+                status,               // 'active' | 'inactive' | 'all' 
+            } = req.query;
+
             const isAdmin = req.user?.role === 'admin';
             const currentUserId = req.user?.id || null;
+
+            let categoryIds = [];
+            if (Array.isArray(categories)) {
+                categoryIds = categories.map(Number).filter(Boolean);
+            } else if (typeof categories === 'string') {
+                categoryIds = categories.split(',').map(Number).filter(Boolean);
+            }
 
             const result = await PostService.getAllPosts({
                 page: Number(page),
                 limit: Number(limit),
                 isAdmin,
                 currentUserId,
+                sortBy: sort,
+                sortOrder: order,
+                filters: {
+                    categoryIds,
+                    dateFrom: dateFrom || null,
+                    dateTo: dateTo || null,
+                    status: status || null,
+                },
             });
 
             res.json({
@@ -21,7 +47,7 @@ class PostController {
                 totalPages: result.totalPages,
                 items: result.items.map(p => {
                     const base = (typeof p.toJSON === 'function') ? p.toJSON() : p;
-                    return { ...base, isFavorite: !!p.isFavorite };
+                    return { ...base, isFavorite: !!p.isFavorite, likesCount: p.likesCount ?? 0 };
                 }),
             });
         } catch (err) {

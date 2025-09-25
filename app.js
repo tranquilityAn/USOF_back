@@ -12,15 +12,34 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 dotenv.config();
 
 const swaggerUi = require("swagger-ui-express");
-const swaggerSpecs = require("./swagger"); 
+const swaggerSpecs = require("./swagger");
 
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use('/static/avatars', express.static(
     path.join(process.cwd(), 'uploads', 'avatars'),
     { immutable: true, maxAge: '30d' }
 ));
+
+app.use((req, _res, next) => {
+    const time = new Date().toISOString();
+    const method = req.method;
+    const url = req.originalUrl;
+
+    // кольори
+    const reset = '\x1b[0m';
+    const cyan = '\x1b[36m';
+    const yellow = '\x1b[33m';
+    const green = '\x1b[32m';
+
+    console.log(
+        `[${cyan}${time}${reset}] ${yellow}${method}${reset} ${green}${url}${reset}`
+    );
+
+    next();
+});
 
 // routes
 app.use('/api/auth', authRoutes);
