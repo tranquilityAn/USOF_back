@@ -56,6 +56,7 @@ async function initDB() {
                 title VARCHAR(255) NOT NULL,
                 content TEXT NOT NULL,
                 status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+                locked_by_author TINYINT(1) NOT NULL DEFAULT 0,
                 publish_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
@@ -80,6 +81,7 @@ async function initDB() {
                 author_id INT NOT NULL,
                 content TEXT NOT NULL,
                 status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+                locked TINYINT(1) NOT NULL DEFAULT 0,
                 publish_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,

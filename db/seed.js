@@ -4,6 +4,31 @@ const bcrypt = require("bcrypt");
 
 dotenv.config();
 
+const RESET = true;
+const TOTAL_EXTRA_USERS = 50;
+const TOTAL_POSTS = 200;
+const MAX_CATEGORIES_PER_POST = 3;
+const MAX_COMMENTS_PER_POST = 6;
+const POST_LIKERS_MAX = 40;
+const FAVORITES_PER_USER_MIN = 5;
+const FAVORITES_PER_USER_MAX = 20;
+const DAYS_BACK = 365;
+
+function rndInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function rndChoice(arr) { return arr[rndInt(0, arr.length - 1)]; }
+function rndBool(pTrue = 0.5) { return Math.random() < pTrue; }
+function toMySQLDate(d) {
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function randomDateBack(daysBack = 365, afterDate = null) {
+    const base = afterDate ? new Date(afterDate) : new Date();
+    const offset = rndInt(0, daysBack);
+    const d = new Date(base.getTime() - offset * 24 * 60 * 60 * 1000);
+    d.setHours(rndInt(0, 23), rndInt(0, 59), rndInt(0, 59), 0);
+    return d;
+}
+
 async function seedDB() {
     const connection = await mysql.createConnection({
         host: process.env.DB_HOST || "localhost",
@@ -13,182 +38,225 @@ async function seedDB() {
         multipleStatements: true,
     });
 
+    const q = (sql, params = []) => connection.query(sql, params);
+
+    async function insertMany(table, columns, rows, { ignore = true, onDup = null, chunkSize = 800 } = {}) {
+        if (!rows.length) return;
+        for (let i = 0; i < rows.length; i += chunkSize) {
+            const chunk = rows.slice(i, i + chunkSize);
+            const placeholders = chunk.map(r => `(${new Array(r.length).fill("?").join(",")})`).join(",");
+            const sql =
+                `INSERT ${ignore ? "IGNORE" : ""} INTO ${table} (${columns.join(",")}) VALUES ${placeholders}` +
+                (onDup ? ` ON DUPLICATE KEY UPDATE ${onDup}` : "");
+            const flat = chunk.flat();
+            await q(sql, flat);
+        }
+    }
+
     try {
         console.log("Seeding started...");
 
-        // ---------- helpers ----------
-        const q = (sql, params = []) => connection.query(sql, params);
-        const getUserIds = async (logins) => {
-            const [rows] = await q(
-                `SELECT id, login FROM users WHERE login IN (${logins.map(() => "?").join(",")})`,
-                logins
-            );
-            const map = {};
-            rows.forEach(r => map[r.login] = r.id);
-            return map;
-        };
-        const getCategoryIds = async (titles) => {
-            const [rows] = await q(
-                `SELECT id, title FROM categories WHERE title IN (${titles.map(() => "?").join(",")})`,
-                titles
-            );
-            const map = {};
-            rows.forEach(r => map[r.title] = r.id);
-            return map;
-        };
-        const getPostIds = async (titles) => {
-            const [rows] = await q(
-                `SELECT id, title FROM posts WHERE title IN (${titles.map(() => "?").join(",")})`,
-                titles
-            );
-            const map = {};
-            rows.forEach(r => map[r.title] = r.id);
-            return map;
-        };
+        if (RESET) {
+            console.log("TRUNCATE tables...");
+            await q("SET FOREIGN_KEY_CHECKS=0");
+            await q("TRUNCATE TABLE favorites");
+            await q("TRUNCATE TABLE likes");
+            await q("TRUNCATE TABLE comments");
+            await q("TRUNCATE TABLE post_categories");
+            await q("TRUNCATE TABLE posts");
+            await q("TRUNCATE TABLE categories");
+            await q("TRUNCATE TABLE user_tokens");
+            await q("TRUNCATE TABLE users");
+            await q("SET FOREIGN_KEY_CHECKS=1");
+        }
 
-        // ---------- users ----------
+        // ---------- USERS ----------
         const saltRounds = 10;
         const passwordHash = await bcrypt.hash("password123", saltRounds);
 
-        await q(
-            `INSERT INTO users (login, password_hash, full_name, email, role, email_verified, profile_picture)
-       VALUES 
-       ('admin',    ?, 'Admin User', 'admin@example.com', 'admin', TRUE,  NULL),
-       ('john_doe', ?, 'John Doe',   'john@example.com',  'user',  TRUE,  NULL),
-       ('jane_doe', ?, 'Jane Doe',   'jane@example.com',  'user',  FALSE, NULL),
-       ('mike',     ?, 'Mike Tyson', 'mike@example.com',  'user',  FALSE, NULL),
-       ('alice',    ?, 'Alice W.',   'alice@example.com', 'user',  TRUE,  NULL)
-       ON DUPLICATE KEY UPDATE 
-         password_hash=VALUES(password_hash),
-         full_name=VALUES(full_name),
-         role=VALUES(role)`,
-            [passwordHash, passwordHash, passwordHash, passwordHash, passwordHash]
-        );
+        const baseUsers = [
+            ['admin', passwordHash, 'Admin User', 'admin@example.com', 'admin', 1, null],
+            ['john_doe', passwordHash, 'John Doe', 'john@example.com', 'user', 1, null],
+            ['jane_doe', passwordHash, 'Jane Doe', 'jane@example.com', 'user', 0, null],
+            ['mike', passwordHash, 'Mike Tyson', 'mike@example.com', 'user', 0, null],
+            ['alice', passwordHash, 'Alice W.', 'alice@example.com', 'user', 1, null],
+        ];
 
-        const U = await getUserIds(["admin", "john_doe", "jane_doe", "mike", "alice"]);
-
-        // ---------- categories ----------
-        await q(
-            `INSERT INTO categories (title, description)
-       VALUES 
-       ('Programming','All about coding'),
-       ('News','Fresh news and events'),
-       ('Travel','Travel blogs and tips'),
-       ('Food','Recipes and food stories'),
-       ('Science','Science and discoveries')
-       ON DUPLICATE KEY UPDATE description=VALUES(description)`
-        );
-        const C = await getCategoryIds(["Programming", "News", "Travel", "Food", "Science"]);
-
-        // ---------- posts ----------
-        await q(
-            `INSERT INTO posts (author_id, title, content, status)
-       VALUES
-       (?, 'Welcome to the blog',        'This is the first post',             'active'),
-       (?, 'Node.js Basics',             'Introduction to Node.js',             'active'),
-       (?, 'Best Pizza Recipe',          'Step by step guide to making pizza',  'active'),
-       (?, 'Top 5 Travel Destinations',  'Places you must visit',               'active'),
-       (?, 'AI in 2025',                 'How AI is changing the world',        'active')
-       ON DUPLICATE KEY UPDATE content=VALUES(content)`,
-            [U.admin, U.john_doe, U.jane_doe, U.mike, U.alice]
-        );
-
-        const P = await getPostIds([
-            "Welcome to the blog",
-            "Node.js Basics",
-            "Best Pizza Recipe",
-            "Top 5 Travel Destinations",
-            "AI in 2025",
-        ]);
-
-        // ---------- post_categories (many-to-many) ----------
-        // подберём простые соответствия
-        const pcRows = [
-            [P["Welcome to the blog"], C.News],
-            [P["Node.js Basics"], C.Programming],
-            [P["Best Pizza Recipe"], C.Food],
-            [P["Top 5 Travel Destinations"], C.Travel],
-            [P["AI in 2025"], C.Science],
-        ].filter(([post_id, category_id]) => post_id && category_id);
-
-        if (pcRows.length) {
-            await q(
-                `INSERT IGNORE INTO post_categories (post_id, category_id) VALUES ${pcRows.map(() => "(?,?)").join(",")}`,
-                pcRows.flat()
-            );
+        const extraUsers = [];
+        for (let i = 1; i <= TOTAL_EXTRA_USERS; i++) {
+            const login = `user${String(i).padStart(3, "0")}`;
+            extraUsers.push([login, passwordHash, `User ${i}`, `${login}@example.com`, 'user', rndBool(0.7) ? 1 : 0, null]);
         }
 
-        // ---------- comments ----------
-        const commentRows = [
-            [P["Welcome to the blog"], U.john_doe, "Nice to see this project starting!"],
-            [P["Node.js Basics"], U.alice, "Great intro, thanks!"],
-            [P["Best Pizza Recipe"], U.mike, "I tried it, turned out perfect."],
-            [P["Top 5 Travel Destinations"], U.jane_doe, "Adding Kyoto to my list!"],
-            [P["AI in 2025"], U.admin, "AI will be everywhere, indeed."],
-        ].filter(([post_id]) => post_id);
-
-        if (commentRows.length) {
-            await q(
-                `INSERT INTO comments (post_id, author_id, content)
-         VALUES ${commentRows.map(() => "(?,?,?)").join(",")}
-         ON DUPLICATE KEY UPDATE content=VALUES(content)`,
-                commentRows.flat()
-            );
-        }
-
-        // получим id свежих комментариев (по текстам)
-        const [commentIdsRows] = await q(
-            `SELECT id, content, post_id FROM comments 
-       WHERE content IN (?,?,?,?,?)`,
-            commentRows.map(r => r[2])
+        await insertMany(
+            "users",
+            ["login", "password_hash", "full_name", "email", "role", "email_verified", "profile_picture"],
+            baseUsers.concat(extraUsers),
+            { ignore: true }
         );
-        // возьмем первую пару для лайков по комменту
-        const anyComment = commentIdsRows[0];
 
-        // ---------- likes (на посты и один на комментарий) ----------
-        const likeRows = [
-            // post likes
-            [U.alice, P["Node.js Basics"], "post", "like"],
-            [U.john_doe, P["Best Pizza Recipe"], "post", "like"],
-            [U.jane_doe, P["AI in 2025"], "post", "dislike"],
-            [U.mike, P["Top 5 Travel Destinations"], "post", "like"],
-            // comment like (если есть любой комментарий)
-            ...(anyComment ? [[U.admin, anyComment.id, "comment", "like"]] : []),
-        ].filter(([author_id, entity_id]) => author_id && entity_id);
+        const [userRows] = await q("SELECT id, login FROM users");
+        const userByLogin = Object.fromEntries(userRows.map(u => [u.login, u.id]));
+        const allUserIds = userRows.map(u => u.id);
+        const adminId = userByLogin["admin"];
 
-        if (likeRows.length) {
-            await q(
-                `INSERT IGNORE INTO likes (author_id, entity_id, entity_type, type)
-         VALUES ${likeRows.map(() => "(?,?,?,?)").join(",")}`,
-                likeRows.flat()
-            );
+        // ---------- CATEGORIES ----------
+        const categories = [
+            ["Programming", "All about coding"],
+            ["News", "Fresh news and events"],
+            ["Travel", "Travel blogs and tips"],
+            ["Food", "Recipes and food stories"],
+            ["Science", "Science and discoveries"],
+            ["Design", "UI/UX, product & graphic"],
+            ["Music", "Music reviews and guides"],
+            ["Movies", "Cinema, TV shows and more"],
+            ["Sports", "Sport news & analytics"],
+            ["Photography", "Shots, gear and tips"],
+            ["Gaming", "Games & industry"],
+            ["DIY", "Make things with your hands"]
+        ];
+        await insertMany("categories", ["title", "description"], categories, {
+            ignore: false,
+            onDup: "description=VALUES(description)"
+        });
+        const [catRows] = await q("SELECT id, title FROM categories");
+        const catIds = catRows.map(c => c.id);
+
+        // ---------- POSTS ----------
+        // 200
+        const postRows = [];
+        for (let i = 1; i <= TOTAL_POSTS; i++) {
+            const authorId = rndChoice(allUserIds);
+            const status = rndBool(0.8) ? "active" : "inactive";
+            const locked = rndBool(0.08) ? 1 : 0;
+            const createdAt = randomDateBack(DAYS_BACK);
+            const title = `Post #${i} — ${rndChoice(["Tips", "Guide", "Story", "Overview", "Deep Dive", "Opinion"])}`;
+            const content = `Autogenerated content for post #${i}. This text is here so you can test full-text length, paging, filters, etc.`;
+
+            postRows.push([
+                authorId, title, content, status, locked, toMySQLDate(createdAt), toMySQLDate(createdAt)
+            ]);
         }
 
-        // ---------- favorites ----------
-        const favRows = [
-            [U.john_doe, P["AI in 2025"]],
-            [U.jane_doe, P["Top 5 Travel Destinations"]],
-            [U.alice, P["Node.js Basics"]],
-            [U.mike, P["Best Pizza Recipe"]],
-        ].filter(([user_id, post_id]) => user_id && post_id);
+        await insertMany(
+            "posts",
+            ["author_id", "title", "content", "status", "locked_by_author", "publish_date", "updated_at"],
+            postRows,
+            { ignore: true }
+        );
 
-        if (favRows.length) {
-            await q(
-                `INSERT IGNORE INTO favorites (user_id, post_id)
-         VALUES ${favRows.map(() => "(?,?)").join(",")}`,
-                favRows.flat()
-            );
+        const [postRowsOut] = await q("SELECT id, title, publish_date FROM posts ORDER BY id");
+        const postIds = postRowsOut.map(p => p.id);
+        const postById = Object.fromEntries(postRowsOut.map(p => [p.id, p]));
+        console.log(`Inserted posts: ${postIds.length}`);
+
+        // ---------- POST_CATEGORIES (1-3) ----------
+        const pcRows = [];
+        for (const postId of postIds) {
+            const howMany = rndInt(1, MAX_CATEGORIES_PER_POST);
+            const shuffled = [...catIds].sort(() => Math.random() - 0.5).slice(0, howMany);
+            for (const catId of shuffled) {
+                pcRows.push([postId, catId]);
+            }
+        }
+        await insertMany("post_categories", ["post_id", "category_id"], pcRows, { ignore: true });
+
+        // ---------- COMMENTS (0-6) ----------
+        const commentRows = [];
+        for (const postId of postIds) {
+            const howMany = rndInt(0, MAX_COMMENTS_PER_POST);
+            for (let i = 0; i < howMany; i++) {
+                const authorId = rndChoice(allUserIds);
+                const status = rndBool(0.85) ? "active" : "inactive";
+                const basePostDate = postById[postId]?.publish_date || new Date();
+                const commentDate = randomDateBack(rndInt(0, 60), basePostDate); 
+                const locked = rndBool(0.05) ? 1 : 0;
+                commentRows.push([
+                    postId,
+                    authorId,
+                    `Comment ${i + 1} on post ${postId}`,
+                    status,
+                    locked,
+                    toMySQLDate(commentDate),
+                    toMySQLDate(commentDate)
+                ]);
+            }
         }
 
-        // ---------- user_tokens (демо для проверки e-mail и сброса пароля) ----------
-        // Для безопасности сюда лучше класть ХЭШ токена, а не сам токен.
-        // Для примера используем фиктивные строки 'tok_xxx' — представь, что это уже хэши.
-        await q(
-            `INSERT IGNORE INTO user_tokens (token, user_id, type, meta, expires_at, used)
-       VALUES
-       ('tok_verify_jane',   ?, 'email_verify',  JSON_OBJECT(),                 NOW() + INTERVAL 7 DAY,  FALSE),
-       ('tok_reset_mike',    ?, 'password_reset',JSON_OBJECT('ip','127.0.0.1'), NOW() + INTERVAL 1 DAY,  FALSE)`,
-            [U.jane_doe, U.mike]
+        await insertMany(
+            "comments",
+            ["post_id", "author_id", "content", "status", "locked", "publish_date", "updated_at"],
+            commentRows,
+            { ignore: true }
+        );
+
+        const [commentsOut] = await q("SELECT id, post_id, publish_date FROM comments");
+        const commentIds = commentsOut.map(c => c.id);
+        const commentById = Object.fromEntries(commentsOut.map(c => [c.id, c]));
+        console.log(`Inserted comments: ${commentIds.length}`);
+
+        // ---------- LIKES (posts) ----------
+        const likeRowsPosts = [];
+        for (const postId of postIds) {
+            const howManyLikers = rndInt(0, POST_LIKERS_MAX);
+            const shuffledUsers = [...allUserIds].sort(() => Math.random() - 0.5).slice(0, howManyLikers);
+            for (const uid of shuffledUsers) {
+                const type = rndBool(0.85) ? "like" : "dislike";
+                const basePostDate = postById[postId]?.publish_date || new Date();
+                const likeDate = randomDateBack(rndInt(0, 90), basePostDate);
+                likeRowsPosts.push([uid, postId, "post", type, toMySQLDate(likeDate)]);
+            }
+        }
+        await insertMany(
+            "likes",
+            ["author_id", "entity_id", "entity_type", "type", "publish_date"],
+            likeRowsPosts,
+            { ignore: true, chunkSize: 1000 }
+        );
+        console.log(`Inserted post likes (rows attempted): ${likeRowsPosts.length}`);
+
+        // ---------- LIKES (comments) -----------
+        const likeRowsComments = [];
+        const sampleCommentIds = [...commentIds].sort(() => Math.random() - 0.5).slice(0, Math.floor(commentIds.length * 0.3));
+        for (const cid of sampleCommentIds) {
+            const howMany = rndInt(0, 8);
+            const shuffledUsers = [...allUserIds].sort(() => Math.random() - 0.5).slice(0, howMany);
+            for (const uid of shuffledUsers) {
+                const type = rndBool(0.9) ? "like" : "dislike";
+                const base = commentById[cid]?.publish_date || new Date();
+                const likeDate = randomDateBack(rndInt(0, 45), base);
+                likeRowsComments.push([uid, cid, "comment", type, toMySQLDate(likeDate)]);
+            }
+        }
+        await insertMany(
+            "likes",
+            ["author_id", "entity_id", "entity_type", "type", "publish_date"],
+            likeRowsComments,
+            { ignore: true, chunkSize: 1000 }
+        );
+        console.log(`Inserted comment likes (rows attempted): ${likeRowsComments.length}`);
+
+        // ---------- FAVORITES (5–20) ----------
+        const favRows = [];
+        for (const uid of allUserIds) {
+            const howMany = rndInt(FAVORITES_PER_USER_MIN, FAVORITES_PER_USER_MAX);
+            const chosen = [...postIds].sort(() => Math.random() - 0.5).slice(0, howMany);
+            for (const pid of chosen) {
+                favRows.push([uid, pid]);
+            }
+        }
+        await insertMany("favorites", ["user_id", "post_id"], favRows, { ignore: true, chunkSize: 1000 });
+        console.log(`Inserted favorites (rows attempted): ${favRows.length}`);
+
+        // ---------- USER TOKENS ----------
+        await insertMany(
+            "user_tokens",
+            ["token", "user_id", "type", "meta", "expires_at", "used"],
+            [
+                ["tok_verify_jane", userByLogin["jane_doe"], "email_verify", "{}", toMySQLDate(new Date(Date.now() + 7 * 864e5)), 0],
+                ["tok_reset_mike", userByLogin["mike"], "password_reset", '{"ip":"127.0.0.1"}', toMySQLDate(new Date(Date.now() + 1 * 864e5)), 0],
+            ],
+            { ignore: true }
         );
 
         console.log("Seeding complete.");
