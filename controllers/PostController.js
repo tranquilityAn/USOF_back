@@ -1,4 +1,4 @@
-const PostService = require("../services/PostService");
+import PostService from '../services/PostService.js';
 
 class PostController {
     async getAllPosts(req, res, next) {
@@ -9,9 +9,9 @@ class PostController {
                 limit = 10,
                 sort = 'date',        // 'date' | 'likes'
                 order = 'desc',       // 'asc' | 'desc'
-                categories,           // "1,2,3" або масив
-                dateFrom,             // "2025-09-01"
-                dateTo,               // "2025-09-24"
+                categories,           // '1,2,3' або масив
+                dateFrom,             // '2025-09-01'
+                dateTo,               // '2025-09-24'
                 status,               // 'active' | 'inactive' | 'all' 
             } = req.query;
 
@@ -108,7 +108,7 @@ class PostController {
         try {
             const { post_id } = req.params;
             await PostService.deletePost(post_id, req.user.id);
-            res.json({ message: "Post deleted successfully" });
+            res.json({ message: 'Post deleted successfully' });
         } catch (err) {
             res.status(err.status || 500).json({ message: err.message || 'Internal error' });
         }
@@ -143,5 +143,4 @@ class PostController {
     }
 }
 
-module.exports = new PostController();
-
+export default new PostController();

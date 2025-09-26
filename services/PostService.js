@@ -1,8 +1,8 @@
-const postRepo = require('../repositories/PostRepository');
-const commentService = require('./CommentService');
-const categoryService = require('./CategoryService');
-const likeService = require('./LikeService');
-const favoriteRepo = require('../repositories/FavoriteRepository');
+import postRepo from '../repositories/PostRepository.js';
+import commentService from './CommentService.js';
+import categoryService from './CategoryService.js';
+import likeService from './LikeService.js';
+import favoriteRepo from '../repositories/FavoriteRepository.js';
 
 class PostService {
     async getAllPosts({ page = 1, limit = 10, isAdmin = false, currentUserId = null, sortBy = 'date', sortOrder = 'desc', filters = {} }) {
@@ -184,4 +184,4 @@ class PostService {
     }
 }
 
-module.exports = new PostService();
+export default new PostService();

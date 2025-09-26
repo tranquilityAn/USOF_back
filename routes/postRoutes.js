@@ -1,10 +1,9 @@
-const express = require('express');
-const PostController = require('../controllers/PostController');
-//const authMiddleware = require('../middlewares/authMiddleware');
-const { authMiddleware } = require('../middlewares/authMiddleware');
-const { optionalAuth } = require('../middlewares/authMiddleware');
-const commentRoutes = require('./commentRoutes');
-const likeRoutes = require('./likeRoutes');
+import express from 'express';
+import PostController from '../controllers/PostController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { optionalAuth } from '../middlewares/authMiddleware.js';
+import commentRoutes from './commentRoutes.js';
+import likeRoutes from './likeRoutes.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -32,5 +31,4 @@ router.use('/:post_id/like', (req, res, next) => {
     next();
 }, likeRoutes);
 
-module.exports = router;
-
+export default router;

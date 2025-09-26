@@ -1,7 +1,7 @@
-const jwt = require("jsonwebtoken");
-const UserService = require("./UserService");
-const TokenService = require("./TokenService");
-const MailService = require("./MailService");
+import jwt from 'jsonwebtoken';
+import UserService from './UserService.js';
+import TokenServise from './TokenService.js';
+import MailService from './MailService.js';
 
 class AuthService {
     async login({ login, password }) {
@@ -82,4 +82,4 @@ class AuthService {
     }
 }
 
-module.exports = new AuthService();
+export default new AuthService();

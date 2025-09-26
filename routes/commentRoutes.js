@@ -1,7 +1,7 @@
-const express = require('express');
-const CommentController = require('../controllers/CommentController');
-const { authMiddleware, optionalAuth } = require('../middlewares/authMiddleware');
-const likeRoutes = require('./likeRoutes');
+import express from 'express';
+import CommentController from '../controllers/CommentController.js';
+import { authMiddleware, optionalAuth} from '../middlewares/authMiddleware.js';
+import likeRoutes from './likeRoutes.js';
 
 const router = express.Router({ mergeParams: true }); 
 
@@ -24,4 +24,4 @@ router.use('/:comment_id/like', (req, res, next) => {
   next();
 }, likeRoutes);
 
-module.exports = router;
+export default router;

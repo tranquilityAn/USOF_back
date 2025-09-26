@@ -1,7 +1,6 @@
-const express = require('express');
-const CategoryController = require('../controllers/CategoryController');
-//const authMiddleware = require('../middlewares/authMiddleware');
-const { authMiddleware } = require('../middlewares/authMiddleware'); 
+import express from 'express';
+import CategoryController from '../controllers/CategoryController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -15,4 +14,4 @@ router.post('/', authMiddleware, CategoryController.createCategory);      // POS
 router.patch('/:category_id', authMiddleware, CategoryController.updateCategory); // PATCH /api/categories/:category_id work
 router.delete('/:category_id', authMiddleware, CategoryController.deleteCategory); // DELETE /api/categories/:category_id work
 
-module.exports = router;
+export default router;

@@ -1,4 +1,4 @@
-const FavoriteService = require("../services/FavoriteService");
+import FavoriteService from '../services/FavoriteService.js';
 
 class FavoriteController {
     async listMyFavorites(req, res, next) {
@@ -38,4 +38,4 @@ class FavoriteController {
     }
 }
 
-module.exports = new FavoriteController();
+export default new FavoriteController();

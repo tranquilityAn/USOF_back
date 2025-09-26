@@ -1,6 +1,6 @@
-const express = require('express');
-const AuthController = require('../controllers/AuthController');
-const { authMiddleware } = require('../middlewares/authMiddleware');
+import express from 'express';
+import AuthController from '../controllers/AuthController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
@@ -54,21 +54,6 @@ const router = express.Router();
  *       409:
  *         description: Користувач з таким логіном уже існує.
  */
-// router.post('/register', AuthController.register);
-
-// // ...
-// // Логин
-// router.post('/login', AuthController.login);
-
-// // Логаут (для JWT – фронт обычно просто удаляет токен, тут заглушка)
-// router.post('/logout', authMiddleware, AuthController.logout);
-
-// // Запрос сброса пароля
-// router.post('/password-reset', AuthController.requestPasswordReset);
-
-// // Подтверждение сброса пароля
-// router.post('/password-reset/:confirm_token', AuthController.confirmPasswordReset);
-// реєстрація/логін/логаут
 router.post('/register', AuthController.register);
 router.post('/login', AuthController.login);
 router.post('/logout', authMiddleware, AuthController.logout);
@@ -77,9 +62,6 @@ router.post('/logout', authMiddleware, AuthController.logout);
 router.get('/verify-email/:token', AuthController.verifyEmail);
 
 // password reset
-//router.post('/password-reset', AuthController.requestPasswordReset);
-//router.post('/password-reset/:confirm_token', AuthController.confirmPasswordReset);
-// запит листа на скидання
 router.post('/password-reset', AuthController.requestPasswordReset);
 
 // JSON-перевірка токена (опційно, зручно для фронта)
@@ -90,4 +72,4 @@ router.post('/password-reset/:token', AuthController.confirmPasswordReset);
 // можемо чемно редіректнути на фронт, щоб не ловити "Cannot GET ..."
 router.get('/password-reset/:token', AuthController.redirectPasswordResetToFrontend);
 
-module.exports = router;
+export default router;

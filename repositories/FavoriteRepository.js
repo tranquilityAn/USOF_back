@@ -1,5 +1,4 @@
-const pool = require("../db/connection");
-const Favorite = require("../models/Favorite");
+import pool from '../db/connection.js';
 
 class FavoriteRepository {
     async add(userId, postId) {
@@ -68,4 +67,4 @@ class FavoriteRepository {
     }
 }
 
-module.exports = new FavoriteRepository();
+export default new FavoriteRepository();

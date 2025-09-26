@@ -1,4 +1,4 @@
-const pool = require("../db/connection");
+import pool from '../db/connection.js';
 
 class TokenRepository {
     async create({ tokenHash, userId, type, meta = null, expiresAt }) {
@@ -31,4 +31,4 @@ class TokenRepository {
     }
 }
 
-module.exports = new TokenRepository();
+export default new TokenRepository();

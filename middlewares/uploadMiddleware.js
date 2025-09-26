@@ -1,8 +1,8 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-const AVATARS_DIR = path.join(process.cwd(), 'uploads', 'avatars');
+export const AVATARS_DIR = path.join(process.cwd(), 'uploads', 'avatars');
 fs.mkdirSync(AVATARS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
@@ -19,10 +19,9 @@ function fileFilter(_req, file, cb) {
     cb(null, true);
 }
 
-const avatarUpload = multer({
+export const avatarUpload = multer({
     storage,
     fileFilter,
     limits: { fileSize: 5 * 1024 * 1024 } // 5MB
 });
 
-module.exports = { avatarUpload, AVATARS_DIR };

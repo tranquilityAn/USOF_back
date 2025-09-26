@@ -1,6 +1,9 @@
-const mysql = require("mysql2/promise");
-const dotenv = require("dotenv");
-const bcrypt = require("bcrypt");
+// const mysql = require("mysql2/promise");
+// const dotenv = require("dotenv");
+// const bcrypt = require("bcrypt");
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -267,4 +270,6 @@ async function seedDB() {
     }
 }
 
-seedDB().then(() => process.exit());
+// seedDB().then(() => process.exit());
+await seedDB();
+process.exit();

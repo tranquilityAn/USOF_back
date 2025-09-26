@@ -1,6 +1,6 @@
-const pool = require("../db/connection");
-const Post = require("../models/Post");
-const Comment = require("../models/Comment");
+import pool from '../db/connection.js';
+import Post from '../models/Post.js';
+import Comment from '../models/Comment.js';
 
 class PostRepository {
     async findAll({ limit = 10, offset = 0, onlyActive = false, sortBy = 'date', sortOrder = 'desc', filters = {} }) {
@@ -194,4 +194,4 @@ class PostRepository {
     }
 }
 
-module.exports = new PostRepository();
+export default new PostRepository();

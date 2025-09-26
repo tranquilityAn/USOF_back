@@ -1,18 +1,18 @@
-const express = require('express');
-const path = require('path');
-const dotenv = require('dotenv');
-const userRoutes = require('./routes/userRoutes');
-const authRoutes = require('./routes/authRoutes');
-const postRoutes = require('./routes/postRoutes');
-const categoryRoutes = require('./routes/categoryRoutes');
-const commentRoutes = require('./routes/commentRoutes');
-const likeRoutes = require('./routes/likeRoutes');
-const favoriteRoutes = require('./routes/favoriteRoutes');
+import express from 'express';
+import path from 'path';
+import dotenv from 'dotenv';
+import userRoutes from './routes/userRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import postRoutes from './routes/postRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+import likeRoutes from './routes/likeRoutes.js';
+import favoriteRoutes from './routes/favoriteRoutes.js';
 
 dotenv.config();
 
-const swaggerUi = require("swagger-ui-express");
-const swaggerSpecs = require("./swagger");
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpecs from './swagger.js';
 
 const app = express();
 app.use(express.json());

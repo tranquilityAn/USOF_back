@@ -1,4 +1,4 @@
-const UserService = require("../services/UserService");
+import UserService from '../services/UserService.js';
 
 class UserController {
     async getAll(req, res, next) {
@@ -15,7 +15,7 @@ class UserController {
             const { user_id } = req.params;
             const user = await UserService.getProfile(user_id);
             if (!user) {
-                return res.status(404).json({ error: "User not found" });
+                return res.status(404).json({ error: 'User not found' });
             }
             res.json(user.toJSON());
         } catch (err) {
@@ -39,7 +39,7 @@ class UserController {
             const data = req.body;
 
             if (!data || typeof data !== 'object' || Array.isArray(data)) {
-                return res.status(400).json({ error: "Expected JSON body with fields to update" });
+                return res.status(400).json({ error: 'Expected JSON body with fields to update' });
             }
 
             const updatedUser = await UserService.update(user_id, data);
@@ -53,7 +53,7 @@ class UserController {
         try {
             const { user_id } = req.params;
             await UserService.delete(user_id);
-            res.json({ message: "User deleted" });
+            res.json({ message: 'User deleted' });
         } catch (err) {
             next(err);
         }
@@ -83,4 +83,4 @@ class UserController {
     }
 }
 
-module.exports = new UserController();
+export default new UserController();

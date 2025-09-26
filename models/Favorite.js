@@ -1,6 +1,6 @@
-const BaseModel = require("./BaseModel");
+import BaseModel from './BaseModel.js';
 
-class Favorite extends BaseModel {
+export default class Favorite extends BaseModel {
     constructor({ userId, postId, createdAt = new Date() }) {
         super(undefined);
         this.userId = userId;
@@ -16,5 +16,3 @@ class Favorite extends BaseModel {
         };
     }
 }
-
-module.exports = Favorite;

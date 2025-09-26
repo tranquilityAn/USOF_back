@@ -1,7 +1,7 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 // Проверка JWT
-function authMiddleware(req, res, next) {
+export function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
         return res.status(401).json({ error: 'Authorization header missing' });
@@ -22,7 +22,7 @@ function authMiddleware(req, res, next) {
 }
 
 // Проверка роли пользователя
-function roleMiddleware(allowedRoles = []) {
+export function roleMiddleware(allowedRoles = []) {
     return (req, res, next) => {
         if (!req.user) {
             return res.status(401).json({ error: 'Not authenticated' });
@@ -34,7 +34,7 @@ function roleMiddleware(allowedRoles = []) {
     };
 }
 
-function optionalAuth(req, res, next) {
+export function optionalAuth(req, res, next) {
     const auth = req.headers.authorization;
     if (!auth) return next();
     const [type, token] = auth.split(' ');
@@ -48,9 +48,3 @@ function optionalAuth(req, res, next) {
         next();
     });
 }
-
-module.exports = {
-    authMiddleware,
-    roleMiddleware,
-    optionalAuth
-};

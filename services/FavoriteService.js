@@ -1,5 +1,5 @@
-const favoriteRepo = require("../repositories/FavoriteRepository");
-const postRepo = require("../repositories/PostRepository");
+import favoriteRepo from '../repositories/FavoriteRepository.js';
+import postRepo from '../repositories/PostRepository.js';
 
 class FavoriteService {
     async addToFavorites(userId, postId) {
@@ -59,4 +59,4 @@ class FavoriteService {
     }
 }
 
-module.exports = new FavoriteService();
+export default new FavoriteService();

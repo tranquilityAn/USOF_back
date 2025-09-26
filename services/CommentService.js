@@ -1,5 +1,6 @@
-const commentRepo = require('../repositories/CommentRepository');
-const postRepo = require('../repositories/PostRepository');
+import commentRepo from '../repositories/CommentRepository.js';
+import postRepo from '../repositories/PostRepository.js';
+
 class CommentService {
     async getCommentsByPost(postId, { isAdmin = false } = {}) {
         return await commentRepo.findByPost(postId, { onlyActive: !isAdmin });
@@ -91,4 +92,4 @@ class CommentService {
     }
 }
 
-module.exports = new CommentService();
+export default new CommentService();

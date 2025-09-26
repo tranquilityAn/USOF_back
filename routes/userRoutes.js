@@ -1,7 +1,7 @@
-const express = require('express');
-const UserController = require('../controllers/UserController');
-const { authMiddleware, roleMiddleware } = require('../middlewares/authMiddleware');
-const { avatarUpload } = require('../middlewares/uploadMiddleware');
+import express from 'express';
+import UserController from '../controllers/UserController.js';
+import { authMiddleware, roleMiddleware} from '../middlewares/authMiddleware.js';
+import { avatarUpload } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();
 
@@ -30,4 +30,4 @@ router.patch('/:user_id', UserController.update);
 // Удалить пользователя
 router.delete('/:user_id', roleMiddleware(['admin']), UserController.delete);
 
-module.exports = router;
+export default router;

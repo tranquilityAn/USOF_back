@@ -1,5 +1,7 @@
-const mysql = require("mysql2/promise");
-const dotenv = require("dotenv");
+// const mysql = require("mysql2/promise");
+// const dotenv = require("dotenv");
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -20,4 +22,6 @@ async function dropDB() {
     }
 }
 
-dropDB().then(() => process.exit());
+// dropDB().then(() => process.exit());
+await dropDB();
+process.exit();

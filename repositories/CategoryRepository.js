@@ -1,5 +1,5 @@
-const pool = require("../db/connection");
-const Category = require("../models/Category");
+import pool from '../db/connection.js';
+import Category from '../models/Category.js';
 
 class CategoryRepository {
     async findAll() {
@@ -65,4 +65,4 @@ class CategoryRepository {
     }
 }
 
-module.exports = new CategoryRepository();
+export default new CategoryRepository();

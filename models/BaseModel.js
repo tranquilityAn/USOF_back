@@ -1,4 +1,4 @@
-class BaseModel {
+export default class BaseModel {
     constructor(id) {
         this.id = id;
     }
@@ -8,4 +8,4 @@ class BaseModel {
     }
 }
 
-module.exports = BaseModel;
+

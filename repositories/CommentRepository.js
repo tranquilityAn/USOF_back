@@ -1,5 +1,5 @@
-const pool = require("../db/connection");
-const Comment = require("../models/Comment");
+import pool from '../db/connection.js';
+import Comment from '../models/Comment.js';
 
 class CommentRepository {
     async findByPost(postId, { onlyActive = false } = {}) {
@@ -71,4 +71,4 @@ class CommentRepository {
     }
 }
 
-module.exports = new CommentRepository();
+export default new CommentRepository

@@ -1,9 +1,9 @@
-const bcrypt = require('bcrypt');
-const path = require('path');
-const User = require('../models/User');
-const UserRepository = require('../repositories/UserRepository');
-const { AVATARS_DIR } = require('../middlewares/uploadMiddleware');
-const { safeUnlink } = require('../utils/file');
+import bcrypt from 'bcrypt';
+import path from 'path';
+import User from '../models/User.js';
+import UserRepository from '../repositories/UserRepository.js';
+import { AVATARS_DIR } from '../middlewares/uploadMiddleware.js';
+import { safeUnlink } from '../utils/file.js';
 
 class UserService {
     async register({ login, password, fullName, email, role = 'user' }) {
@@ -118,4 +118,4 @@ class UserService {
     }
 }
 
-module.exports = new UserService();
+export default new UserService();

@@ -1,6 +1,6 @@
-const BaseModel = require('./BaseModel');
+import BaseModel from './BaseModel.js';
 
-class User extends BaseModel {
+export default class User extends BaseModel {
     constructor({ 
         id, 
         login, 
@@ -38,4 +38,3 @@ class User extends BaseModel {
     }
 }
 
-module.exports = User;

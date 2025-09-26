@@ -1,10 +1,10 @@
-const LikeService = require("../services/LikeService");
+import LikeService from '../services/LikeService.js';
 
 class LikeController {
     // Ожидаем, что роутер-родитель положил entityType & entityId в req
     // (см. примеры монтирования ниже). На всякий случай делаем fallback.
     #resolveEntity(req) {
-        const entityType = req.entityType || (req.params.post_id ? "post" : req.params.comment_id ? "comment" : undefined);
+        const entityType = req.entityType || (req.params.post_id ? 'post' : req.params.comment_id ? 'comment' : undefined);
         const entityId = req.entityId || Number(req.params.post_id || req.params.comment_id);
         return { entityType, entityId };
     }
@@ -23,7 +23,7 @@ class LikeController {
         try {
             const { entityType, entityId } = this.#resolveEntity(req);
             const userId = req.user.id;
-            const type = req.body?.type || "like"; // опционально можно передавать 'dislike'
+            const type = req.body?.type || 'like'; // опционально можно передавать 'dislike'
             const result = await LikeService.addLike(entityType, entityId, userId, type);
 
             if (result?.switched) {
@@ -40,11 +40,11 @@ class LikeController {
             const { entityType, entityId } = this.#resolveEntity(req);
             const userId = req.user.id;
             await LikeService.removeLike(entityType, entityId, userId);
-            res.json({ message: "Reaction removed successfully" });
+            res.json({ message: 'Reaction removed successfully' });
         } catch (err) {
             next(err);
         }
     }
 }
 
-module.exports = new LikeController();
+export default new LikeController();

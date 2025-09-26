@@ -1,13 +1,12 @@
-// controllers/AuthController.js
-const UserService = require("../services/UserService");
-const AuthService = require("../services/AuthService");
+import UserService from '../services/UserService.js';
+import AuthService from '../services/AuthService.js';
 
 class AuthController {
     async register(req, res, next) {
         try {
             const { login, password, passwordConfirmation, email, fullName } = req.body;
             if (password !== passwordConfirmation) {
-                return res.status(400).json({ error: "Passwords do not match" });
+                return res.status(400).json({ error: 'Passwords do not match' });
             }
             const user = await UserService.register({ login, password, email, fullName });
 
@@ -16,7 +15,7 @@ class AuthController {
 
             res.status(201).json({
                 ...user.toJSON(),
-                message: "Registered. Please verify your email."
+                message: 'Registered. Please verify your email.'
             });
         } catch (err) {
             next(err);
@@ -46,7 +45,7 @@ class AuthController {
         try {
             const { token } = req.params;
             await AuthService.confirmEmailVerify(token);
-            res.json({ message: "Email verified successfully" });
+            res.json({ message: 'Email verified successfully' });
         } catch (err) {
             next(err);
         }
@@ -65,7 +64,7 @@ class AuthController {
     async validatePasswordResetToken(req, res, next) {
         try {
             const { token } = req.params;
-            // просто пробуємо "прочитати" токен без застосування
+            // просто пробуємо 'прочитати' токен без застосування
             await AuthService.peekPasswordResetToken(token);
             res.json({ valid: true });
         } catch (err) {
@@ -76,7 +75,7 @@ class AuthController {
     async confirmPasswordReset(req, res, next) {
         try {
             const { token } = req.params;
-            const { newPassword } = req.body;      // фронт шле JSON: { "newPassword": "..." }
+            const { newPassword } = req.body;      // фронт шле JSON: { 'newPassword': '...' }
             const result = await AuthService.confirmPasswordReset(token, newPassword);
             res.json(result);
         } catch (err) {
@@ -91,11 +90,11 @@ class AuthController {
             // 307, щоб зберегти метод, але тут GET, тому 302 теж ок
             return res.redirect(302, `${base}/reset?token=${token}`);
         }
-        // якщо фронт не заданий — відповімо JSON, щоб не було "Cannot GET"
+        // якщо фронт не заданий — відповімо JSON, щоб не було 'Cannot GET'
         return res.status(400).json({
-            error: "This is an API endpoint. Use POST /api/auth/password-reset/:token with { newPassword }."
+            error: 'This is an API endpoint. Use POST /api/auth/password-reset/:token with { newPassword }.'
         });
     }
 }
 
-module.exports = new AuthController();
+export default new AuthController();

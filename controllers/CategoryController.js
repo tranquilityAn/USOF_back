@@ -1,4 +1,4 @@
-const CategoryService = require("../services/CategoryService");
+import CategoryService from '../services/CategoryService.js';
 
 class CategoryController {
     async getAllCategories(req, res, next) {
@@ -61,4 +61,4 @@ class CategoryController {
     }
 }
 
-module.exports = new CategoryController();
+export default new CategoryController();

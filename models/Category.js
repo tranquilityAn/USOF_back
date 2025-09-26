@@ -1,6 +1,6 @@
-const BaseModel = require("./BaseModel");
+import BaseModel from './BaseModel.js';
 
-class Category extends BaseModel {
+export default class Category extends BaseModel {
     constructor({ id, title, description = null }) {
         super(id);
         this.title = title;
@@ -16,6 +16,4 @@ class Category extends BaseModel {
         };
     }
 }
-
-module.exports = Category;
 

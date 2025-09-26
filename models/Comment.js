@@ -1,6 +1,6 @@
-const BaseModel = require("./BaseModel");
+import BaseModel from './BaseModel.js';
 
-class Comment extends BaseModel {
+export default class Comment extends BaseModel {
     constructor({
         id,
         postId,
@@ -32,5 +32,3 @@ class Comment extends BaseModel {
         };
     }
 }
-
-module.exports = Comment;

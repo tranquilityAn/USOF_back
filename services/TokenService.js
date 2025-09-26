@@ -1,5 +1,5 @@
-const crypto = require("crypto");
-const TokenRepository = require("../repositories/TokenRepository");
+import crypto from 'crypto';
+import TokenRepository from '../repositories/TokenRepository.js';
 
 class TokenService {
     // генеруємо випадковий токен, зберігаємо SHA-256 у БД
@@ -41,4 +41,4 @@ class TokenService {
     }
 }
 
-module.exports = new TokenService();
+export default new TokenService();

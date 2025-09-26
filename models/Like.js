@@ -1,7 +1,6 @@
-// models/Like.js
-const BaseModel = require("./BaseModel");
+import BaseModel from './BaseModel.js';
 
-class Like extends BaseModel {
+export default class Like extends BaseModel {
     constructor({ id, entityId, entityType, userId, type = "like", createdAt = new Date() }) {
         super(id);
         this.entityId = entityId;
@@ -22,5 +21,3 @@ class Like extends BaseModel {
         };
     }
 }
-
-module.exports = Like;

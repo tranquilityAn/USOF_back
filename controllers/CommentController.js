@@ -1,4 +1,4 @@
-const CommentService = require("../services/CommentService");
+import CommentService from '../services/CommentService.js';
 
 class CommentController {
     async getComments(req, res, next) {
@@ -49,7 +49,7 @@ class CommentController {
         try {
             const { comment_id } = req.params;
             await CommentService.deleteComment(comment_id, req.user.id);
-            res.json({ message: "Comment deleted successfully" });
+            res.json({ message: 'Comment deleted successfully' });
         } catch (err) {
             next(err);
         }
@@ -86,4 +86,4 @@ class CommentController {
     }
 }
 
-module.exports = new CommentController();
+export default new CommentController();

@@ -1,5 +1,4 @@
-const categoryRepo = require("../repositories/CategoryRepository");
-
+import categoryRepo from '../repositories/CategoryRepository.js';
 class CategoryService {
     async getAllCategories() {
         return await categoryRepo.findAll();
@@ -43,4 +42,4 @@ class CategoryService {
     }
 }
 
-module.exports = new CategoryService();
+export default new CategoryService();
