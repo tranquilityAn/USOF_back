@@ -102,6 +102,71 @@ async function initDB() {
             );
         `);
 
+        await connection.query(`DROP TRIGGER IF EXISTS trg_likes_after_insert`);
+        await connection.query(`
+            CREATE TRIGGER trg_likes_after_insert
+            AFTER INSERT ON likes
+            FOR EACH ROW
+            UPDATE users u
+            SET u.rating = u.rating + (CASE NEW.type WHEN 'like' THEN 1 ELSE -1 END)
+            WHERE u.id = IF(
+                NEW.entity_type = 'post',
+                (SELECT author_id FROM posts    WHERE id = NEW.entity_id),
+                (SELECT author_id FROM comments WHERE id = NEW.entity_id)
+            )
+        `);
+
+        await connection.query(`DROP TRIGGER IF EXISTS trg_likes_after_delete`);
+        await connection.query(`
+            CREATE TRIGGER trg_likes_after_delete
+            AFTER DELETE ON likes
+            FOR EACH ROW
+            UPDATE users u
+            SET u.rating = u.rating + (CASE OLD.type WHEN 'like' THEN -1 ELSE 1 END)
+            WHERE u.id = IF(
+                OLD.entity_type = 'post',
+                (SELECT author_id FROM posts    WHERE id = OLD.entity_id),
+                (SELECT author_id FROM comments WHERE id = OLD.entity_id)
+            )
+        `);
+
+        await connection.query(`DROP TRIGGER IF EXISTS trg_likes_after_update`);
+        await connection.query(`
+            CREATE TRIGGER trg_likes_after_update
+            AFTER UPDATE ON likes
+            FOR EACH ROW
+            UPDATE users u
+            SET u.rating = u.rating
+                + (
+                    CASE WHEN u.id = IF(
+                    OLD.entity_type = 'post',
+                    (SELECT author_id FROM posts    WHERE id = OLD.entity_id),
+                    (SELECT author_id FROM comments WHERE id = OLD.entity_id)
+                    )
+                    THEN (CASE OLD.type WHEN 'like' THEN -1 ELSE 1 END) ELSE 0 END
+                )
+                + (
+                    CASE WHEN u.id = IF(
+                    NEW.entity_type = 'post',
+                    (SELECT author_id FROM posts    WHERE id = NEW.entity_id),
+                    (SELECT author_id FROM comments WHERE id = NEW.entity_id)
+                    )
+                    THEN (CASE NEW.type WHEN 'like' THEN 1 ELSE -1 END) ELSE 0 END
+                )
+            WHERE u.id IN (
+                IF(
+                OLD.entity_type = 'post',
+                (SELECT author_id FROM posts    WHERE id = OLD.entity_id),
+                (SELECT author_id FROM comments WHERE id = OLD.entity_id)
+                ),
+                IF(
+                NEW.entity_type = 'post',
+                (SELECT author_id FROM posts    WHERE id = NEW.entity_id),
+                (SELECT author_id FROM comments WHERE id = NEW.entity_id)
+                )
+            )
+        `);
+
 
         await connection.query(`
             CREATE TABLE IF NOT EXISTS favorites (
