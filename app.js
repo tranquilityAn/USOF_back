@@ -6,8 +6,8 @@ import authRoutes from './routes/authRoutes.js';
 import postRoutes from './routes/postRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
-import likeRoutes from './routes/likeRoutes.js';
 import favoriteRoutes from './routes/favoriteRoutes.js';
+import { admin, router as adminRouter } from './admin/index.js'
 
 dotenv.config();
 
@@ -15,6 +15,16 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpecs from './swagger.js';
 
 const app = express();
+
+app.use((req, res, next) => {
+    if (req.path.startsWith('/admin')) {
+        console.log('[TRACE] admin hit:', req.method, req.originalUrl)
+    }
+    next()
+})
+app.use(admin.options.rootPath, adminRouter);
+app.set('trust proxy', 1)
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

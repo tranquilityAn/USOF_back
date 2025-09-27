@@ -18,3 +18,5 @@ yarn-error.log*
 .cache
 dist/
 build/
+
+.adminjs/
