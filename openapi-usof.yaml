@@ -1,0 +1,733 @@
+openapi: 3.0.3
+info:
+  title: USOF API
+  version: 1.0.0
+  description: |
+    Lightweight Swagger documentation for USOF endpoints.
+    Auth uses JWT Bearer tokens. Most write operations require authentication.
+servers:
+  - url: http://localhost:3000/api
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+  - name: Users
+  - name: Posts
+  - name: Comments
+  - name: Categories
+  - name: Likes
+  - name: Favorites
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password, passwordConfirmation, email]
+              properties:
+                login: { type: string }
+                password: { type: string, format: password }
+                passwordConfirmation: { type: string, format: password }
+                email: { type: string, format: email }
+                fullName: { type: string }
+      responses:
+        "201":
+          description: Registered, email verification sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublic"
+        "400":
+          description: Validation error
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Log in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string, description: "Login or email" }
+                password: { type: string, format: password }
+      responses:
+        "200":
+          description: JWT tokens and user profile
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  user: { $ref: "#/components/schemas/UserPublic" }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out (invalidate refresh token)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200": { description: Logged out }
+  /auth/verify-email/{token}:
+    get:
+      tags: [Auth]
+      summary: Verify email by token
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: Email verified }
+  /auth/password-reset:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200": { description: Reset link sent }
+  /auth/password-reset/{token}/validate:
+    get:
+      tags: [Auth]
+      summary: Validate reset token (JSON)
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Token valid info
+  /auth/password-reset/{token}:
+    post:
+      tags: [Auth]
+      summary: Confirm new password
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password, passwordConfirmation]
+              properties:
+                password: { type: string, format: password }
+                passwordConfirmation: { type: string, format: password }
+      responses:
+        "200": { description: Password updated }
+  /users:
+    get:
+      tags: [Users]
+      summary: List users (admin only)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Array of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UserPublic" }
+    post:
+      tags: [Users]
+      summary: Create user/admin (admin only)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/UserCreate"
+      responses:
+        "201": { description: Created }
+  /users/{user_id}:
+    get:
+      tags: [Users]
+      summary: Get user by id
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UserPublic" }
+    patch:
+      tags: [Users]
+      summary: Update user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserUpdate"
+      responses:
+        "200": { description: Updated }
+    delete:
+      tags: [Users]
+      summary: Delete user (admin only)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200": { description: Deleted }
+  /users/avatar:
+    patch:
+      tags: [Users]
+      summary: Upload or remove avatar
+      description: Send multipart/form-data with **avatar** file or `remove=true` to delete.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: false
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                remove:
+                  type: boolean
+      responses:
+        "200": { description: Avatar updated }
+  /posts:
+    get:
+      tags: [Posts]
+      summary: List posts (public)
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 10 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [date, likes], default: date }
+        - in: query
+          name: order
+          schema: { type: string, enum: [asc, desc], default: desc }
+        - in: query
+          name: categories
+          description: Comma-separated category ids
+          schema: { type: string }
+        - in: query
+          name: dateFrom
+          schema: { type: string, format: date }
+        - in: query
+          name: dateTo
+          schema: { type: string, format: date }
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive, all] }
+      responses:
+        "200":
+          description: Paginated posts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Post" }
+                  page: { type: integer }
+                  limit: { type: integer }
+                  total: { type: integer }
+    post:
+      tags: [Posts]
+      summary: Create post
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, content, categories]
+              properties:
+                title: { type: string }
+                content: { type: string }
+                categories:
+                  type: array
+                  items: { type: integer }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Post" }
+  /posts/{post_id}:
+    get:
+      tags: [Posts]
+      summary: Get post by id (public)
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200":
+          description: Post
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Post" }
+    patch:
+      tags: [Posts]
+      summary: Update own post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                content: { type: string }
+                categories:
+                  type: array
+                  items: { type: integer }
+      responses:
+        "200": { description: Updated }
+    delete:
+      tags: [Posts]
+      summary: Delete own post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200": { description: Deleted }
+  /posts/{post_id}/categories:
+    get:
+      tags: [Posts]
+      summary: Get categories of a post
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200":
+          description: Array of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Category" }
+  /posts/{post_id}/lock:
+    post:
+      tags: [Posts]
+      summary: Lock post (prevent comments/edits)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200": { description: Locked }
+    delete:
+      tags: [Posts]
+      summary: Unlock post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200": { description: Unlocked }
+  /posts/{post_id}/comments:
+    get:
+      tags: [Comments]
+      summary: List comments under post (public)
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200":
+          description: Array of comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Comment" }
+    post:
+      tags: [Comments]
+      summary: Add comment to post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Comment" }
+  /comments/{comment_id}:
+    get:
+      tags: [Comments]
+      summary: Get comment by id (public)
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200":
+          description: Comment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Comment" }
+    patch:
+      tags: [Comments]
+      summary: Update comment (status active/inactive)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string, enum: [active, inactive] }
+      responses:
+        "200": { description: Updated }
+    delete:
+      tags: [Comments]
+      summary: Delete own comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200": { description: Deleted }
+  /comments/{comment_id}/lock:
+    post:
+      tags: [Comments]
+      summary: Lock comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200": { description: Locked }
+    delete:
+      tags: [Comments]
+      summary: Unlock comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200": { description: Unlocked }
+  /posts/{post_id}/like:
+    get:
+      tags: [Likes]
+      summary: Get likes for a post
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200":
+          description: Array of likes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Like" }
+    post:
+      tags: [Likes]
+      summary: Like/dislike a post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [like, dislike] }
+      responses:
+        "201": { description: Created }
+    delete:
+      tags: [Likes]
+      summary: Remove my like/dislike on post
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200": { description: Deleted }
+  /comments/{comment_id}/like:
+    get:
+      tags: [Likes]
+      summary: Get likes for a comment
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200":
+          description: Array of likes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Like" }
+    post:
+      tags: [Likes]
+      summary: Like/dislike a comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [like, dislike] }
+      responses:
+        "201": { description: Created }
+    delete:
+      tags: [Likes]
+      summary: Remove my like/dislike on comment
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CommentId"
+      responses:
+        "200": { description: Deleted }
+  /categories:
+    get:
+      tags: [Categories]
+      summary: List categories (public)
+      responses:
+        "200":
+          description: Array of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Category" }
+    post:
+      tags: [Categories]
+      summary: Create category
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title]
+              properties:
+                title: { type: string }
+                description: { type: string }
+      responses:
+        "201": { description: Created }
+  /categories/{category_id}:
+    get:
+      tags: [Categories]
+      summary: Get category by id (public)
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          description: Category
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Category" }
+    patch:
+      tags: [Categories]
+      summary: Update category
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoryUpdate"
+      responses:
+        "200": { description: Updated }
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200": { description: Deleted }
+  /categories/{category_id}/posts:
+    get:
+      tags: [Categories]
+      summary: List posts by category (public)
+      parameters:
+        - $ref: "#/components/parameters/CategoryId"
+      responses:
+        "200":
+          description: Posts in category
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+  /favorites:
+    get:
+      tags: [Favorites]
+      summary: List my favorites
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Array of posts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Post" }
+  /favorites/{post_id}:
+    post:
+      tags: [Favorites]
+      summary: Add post to favorites
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "201": { description: Added }
+    delete:
+      tags: [Favorites]
+      summary: Remove post from favorites
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: "#/components/parameters/PostId"
+      responses:
+        "200": { description: Removed }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    UserId:
+      in: path
+      name: user_id
+      required: true
+      schema: { type: integer, minimum: 1 }
+    PostId:
+      in: path
+      name: post_id
+      required: true
+      schema: { type: integer, minimum: 1 }
+    CommentId:
+      in: path
+      name: comment_id
+      required: true
+      schema: { type: integer, minimum: 1 }
+    CategoryId:
+      in: path
+      name: category_id
+      required: true
+      schema: { type: integer, minimum: 1 }
+  schemas:
+    UserPublic:
+      type: object
+      properties:
+        id: { type: integer }
+        login: { type: string }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        emailVerified: { type: boolean }
+        profilePicture: { type: string, nullable: true }
+        rating: { type: integer }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    UserCreate:
+      type: object
+      required: [login, password, passwordConfirmation, email, role]
+      properties:
+        login: { type: string }
+        password: { type: string, format: password }
+        passwordConfirmation: { type: string, format: password }
+        email: { type: string, format: email }
+        role: { type: string, enum: [user, admin] }
+        fullName: { type: string }
+    UserUpdate:
+      type: object
+      properties:
+        login: { type: string }
+        email: { type: string, format: email }
+        fullName: { type: string }
+        role: { type: string, enum: [user, admin] }
+    Post:
+      type: object
+      properties:
+        id: { type: integer }
+        authorId: { type: integer }
+        author: { $ref: "#/components/schemas/UserPublic" }
+        title: { type: string }
+        content: { type: string }
+        status: { type: string, enum: [active, inactive] }
+        publishDate: { type: string, format: date-time }
+        categories:
+          type: array
+          items: { $ref: "#/components/schemas/Category" }
+        likesCount: { type: integer }
+        dislikesCount: { type: integer }
+        lockedByAuthor: { type: boolean }
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        description: { type: string }
+    CategoryUpdate:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+    Comment:
+      type: object
+      properties:
+        id: { type: integer }
+        postId: { type: integer }
+        authorId: { type: integer }
+        author: { $ref: "#/components/schemas/UserPublic" }
+        content: { type: string }
+        publishDate: { type: string, format: date-time }
+        status: { type: string, enum: [active, inactive] }
+        lockedByAuthor: { type: boolean }
+    Like:
+      type: object
+      properties:
+        id: { type: integer }
+        authorId: { type: integer }
+        type: { type: string, enum: [like, dislike] }
+        entityType: { type: string, enum: [post, comment] }
+        entityId: { type: integer }
+        publishDate: { type: string, format: date-time }

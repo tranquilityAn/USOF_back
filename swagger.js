@@ -1,5 +1,8 @@
 // swagger.js
 import swaggerJsdoc from 'swagger-jsdoc';
+import fs from 'fs';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 
 const options = {
     // Опис API
@@ -20,6 +23,8 @@ const options = {
     apis: ["./routes/*.js"], 
 };
 
-const specs = swaggerJsdoc(options);
+// const specs = swaggerJsdoc(options);
+const spec = yaml.load(fs.readFileSync('./openapi-usof.yaml', 'utf8'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(spec));
 
 export default specs;
