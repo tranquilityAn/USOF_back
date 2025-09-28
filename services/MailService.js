@@ -18,12 +18,12 @@ class MailService {
     async sendEmailVerification(to, rawToken) {
         const url = `${this.publicBase}/api/auth/verify-email/${rawToken}`;
         const html = `
-      <h2>Підтвердження електронної пошти</h2>
-      <p>Доброго дня! Будь ласка, підтвердіть вашу пошту, натиснувши на посилання нижче:</p>
+      <h2>Email Verification</h2>
+      <p>Hello! Please confirm your email address by clicking the link below:</p>
       <p><a href="${url}">${url}</a></p>
-      <p>Посилання дійсне 60 хвилин.</p>
+      <p>The link is valid for 60 minutes.</p>
     `;
-        await this.transporter.sendMail({ to, from: this.from, subject: "Підтвердження пошти", html });
+        await this.transporter.sendMail({ to, from: this.from, subject: "Email Verification", html });
     }
 
     async sendPasswordReset(to, rawToken) {
@@ -31,12 +31,12 @@ class MailService {
         const frontendBase = process.env.FRONTEND_BASE_URL || process.env.PUBLIC_BASE_URL;
         const url = `${frontendBase}/reset?token=${rawToken}`; // <- ведемо на фронт
         const html = `
-      <h2>Скидання пароля</h2>
-      <p>Ви запросили скидання пароля. Перейдіть за посиланням, щоб встановити новий пароль:</p>
+      <h2>Password Reset</h2>
+      <p>You requested a password reset. Please click the link below to set a new password:</p>
       <p><a href="${url}">${url}</a></p>
-      <p>Посилання дійсне 30 хвилин. Якщо це були не ви — проігноруйте лист.</p>
+      <p>The link is valid for 30 minutes. If this wasn’t you, please ignore this email.</p>
     `;
-        await this.transporter.sendMail({ to, from: this.from, subject: "Скидання пароля", html });
+        await this.transporter.sendMail({ to, from: this.from, subject: "Password Reset", html });
     }
 }
 

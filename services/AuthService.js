@@ -18,7 +18,7 @@ class AuthService {
         );
 
         // Можеш вирішити: не пускати, якщо email не підтверджено
-        // if (!user.emailVerified) throw new Error("Email is not verified");
+        if (!user.emailVerified) throw new Error("Email is not verified");
 
         return { token, user };
     }

@@ -18,7 +18,7 @@ class PostService {
         ]);
 
         if (currentUserId && items.length) {
-            const favoriteMap = await require('../repositories/FavoriteRepository').existsForMany(
+            const favoriteMap = await favoriteRepo.existsForMany(
                 currentUserId,
                 items.map(p => p.id)
             );
