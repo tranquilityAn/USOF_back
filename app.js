@@ -1,6 +1,8 @@
 import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './swagger.js';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import postRoutes from './routes/postRoutes.js';
@@ -10,9 +12,6 @@ import favoriteRoutes from './routes/favoriteRoutes.js';
 import { admin, router as adminRouter } from './admin/index.js'
 
 dotenv.config();
-
-import swaggerUi from 'swagger-ui-express';
-import swaggerSpecs from './swagger.js';
 
 const app = express();
 
@@ -38,7 +37,6 @@ app.use((req, _res, next) => {
     const method = req.method;
     const url = req.originalUrl;
 
-    // кольори
     const reset = '\x1b[0m';
     const cyan = '\x1b[36m';
     const yellow = '\x1b[33m';
@@ -60,7 +58,8 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/posts/:post_id/comments', commentRoutes);
 
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 // global error handler
 app.use((err, req, res, next) => {
     console.error(err.stack);
