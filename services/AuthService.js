@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import UserService from './UserService.js';
-import TokenServise from './TokenService.js';
+import TokenService from './TokenService.js';
 import MailService from './MailService.js';
 
 class AuthService {
