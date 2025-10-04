@@ -3,6 +3,7 @@ import path from 'path';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger.js';
+import cors from 'cors';
 import userRoutes from './routes/userRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import postRoutes from './routes/postRoutes.js';
@@ -14,6 +15,15 @@ import { admin, router as adminRouter } from './admin/index.js'
 dotenv.config();
 
 const app = express();
+
+// CORS middleware
+app.use(cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 
 app.use((req, res, next) => {
     if (req.path.startsWith('/admin')) {
