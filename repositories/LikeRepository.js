@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import Like from '../models/Like.js';
 
 class LikeRepository {
     async findByEntity(entityType, entityId) {
