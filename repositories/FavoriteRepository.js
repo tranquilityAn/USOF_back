@@ -1,4 +1,5 @@
 import pool from '../db/connection.js';
+import Favorite from '../models/Favorite.js';
 
 class FavoriteRepository {
     async add(userId, postId) {

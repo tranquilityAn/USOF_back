@@ -5,14 +5,14 @@ import { avatarUpload } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();
 
+// Получить конкретного пользователя
+router.get('/:user_id', UserController.getById);
+
 // Все маршруты ниже требуют авторизации
 router.use(authMiddleware);
 
 // Получить всех пользователей — только для админов
 router.get('/', roleMiddleware(['admin']), UserController.getAll);
-
-// Получить конкретного пользователя
-router.get('/:user_id', UserController.getById);
 
 // Создать нового пользователя — только для админов
 router.post('/', roleMiddleware(['admin']), UserController.create);

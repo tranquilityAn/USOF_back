@@ -91,11 +91,16 @@ class PostController {
     async updatePost(req, res, next) {
         try {
             const postId = Number(req.params.post_id);
+            const categories =
+                Array.isArray(req.body?.categories)
+                    ? req.body.categories.map(n => Number(n)).filter(Number.isFinite)
+                    : undefined;
+
             const result = await PostService.updatePost(postId, req.user, {
                 title: req.body.title,
                 content: req.body.content,
-                categories: req.body.categoryIds, // очікуємо масив чисел
-                status: req.body.status
+                categories,
+                status: req.body.status,
             });
             res.json(result);
         }
