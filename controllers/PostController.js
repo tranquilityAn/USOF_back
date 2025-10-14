@@ -3,53 +3,48 @@ import PostService from '../services/PostService.js';
 class PostController {
     async getAllPosts(req, res, next) {
         try {
-            console.log('Q:', req.query);
             const {
                 page = 1,
                 limit = 10,
-                sort = 'date',        // 'date' | 'likes'
-                order = 'desc',       // 'asc' | 'desc'
-                categories,           // '1,2,3' або масив
-                dateFrom,             // '2025-09-01'
-                dateTo,               // '2025-09-24'
-                status,               // 'active' | 'inactive' | 'all' 
+                sort = 'date',     // 'date' | 'likes'
+                order = 'desc',    // 'asc' | 'desc'
+                categories,
+                dateFrom,
+                dateTo,
+                status,
             } = req.query;
 
-            const isAdmin = req.user?.role === 'admin';
-            const currentUserId = req.user?.id || null;
+            const sortMap = { date: 'date', likes: 'likes' };
+            const sortBy = sortMap[sort] || 'date';
+            const sortOrder = (order || '').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-            let categoryIds = [];
-            if (Array.isArray(categories)) {
-                categoryIds = categories.map(Number).filter(Boolean);
-            } else if (typeof categories === 'string') {
-                categoryIds = categories.split(',').map(Number).filter(Boolean);
-            }
+            const categoryIds = Array.isArray(categories)
+                ? categories.map(Number).filter(Boolean)
+                : (typeof categories === 'string' && categories.length
+                    ? categories.split(',').map(Number).filter(Boolean)
+                    : []);
 
-            const result = await PostService.getAllPosts({
+            const filters = {
+                categoryIds,
+                dateFrom: dateFrom || null,
+                dateTo: dateTo || null,
+                status: status || null,
+            };
+
+            const isAdmin = !!req.user && req.user.role === 'admin';
+            const currentUserId = req.user?.id ?? null;
+
+            const data = await PostService.getAllPosts({
                 page: Number(page),
                 limit: Number(limit),
                 isAdmin,
                 currentUserId,
-                sortBy: sort,
-                sortOrder: order,
-                filters: {
-                    categoryIds,
-                    dateFrom: dateFrom || null,
-                    dateTo: dateTo || null,
-                    status: status || null,
-                },
+                sortBy,
+                sortOrder,
+                filters,
             });
 
-            res.json({
-                page: result.page,
-                limit: result.limit,
-                total: result.total,
-                totalPages: result.totalPages,
-                items: result.items.map(p => {
-                    const base = (typeof p.toJSON === 'function') ? p.toJSON() : p;
-                    return { ...base, isFavorite: !!p.isFavorite, likesCount: p.likesCount ?? 0 };
-                }),
-            });
+            res.json(data);
         } catch (err) {
             next(err);
         }

@@ -5,7 +5,15 @@ import likeService from './LikeService.js';
 import favoriteRepo from '../repositories/FavoriteRepository.js';
 
 class PostService {
-    async getAllPosts({ page = 1, limit = 10, isAdmin = false, currentUserId = null, sortBy = 'date', sortOrder = 'desc', filters = {} }) {
+    async getAllPosts({
+        page = 1,
+        limit = 10,
+        isAdmin = false,
+        currentUserId = null,
+        sortBy = 'date',
+        sortOrder = 'desc',
+        filters = {}
+    }) {
         console.log('S:', { sortBy, sortOrder, filters });
         const offset = (page - 1) * limit;
 
@@ -17,14 +25,18 @@ class PostService {
             postRepo.countAll({ onlyActive, filters: effectiveFilters }),
         ]);
 
+        if (!Array.isArray(items)) {
+            throw new Error('postRepo.findAll must return an array of posts');
+        }
+
         if (currentUserId && items.length) {
-            const favoriteMap = await favoriteRepo.existsForMany(
-                currentUserId,
-                items.map(p => p.id)
-            );
-            items.forEach(p => (p.isFavorite = !!favoriteMap[p.id]));
+            const ids = items.map(p => p.id).filter(Boolean);
+            const favoriteMap = ids.length
+                ? await favoriteRepo.existsForMany(currentUserId, ids)
+                : {};
+            items.forEach(p => { p.isFavorite = !!favoriteMap[p.id]; });
         } else {
-            items.forEach(p => (p.isFavorite = false));
+            items.forEach(p => { p.isFavorite = false; });
         }
 
         const totalPages = Math.ceil(total / limit) || 1;

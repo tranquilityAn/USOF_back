@@ -1,67 +1,103 @@
 import pool from '../db/connection.js';
 import Post from '../models/Post.js';
-import Comment from '../models/Comment.js';
 
 class PostRepository {
-    async findAll({ limit = 10, offset = 0, onlyActive = false, sortBy = 'date', sortOrder = 'desc', filters = {} }) {
-        console.log('R:', { onlyActive, sortBy, sortOrder, filters });
+    async findAll({
+        limit = 10,
+        offset = 0,
+        onlyActive = false,
+        sortBy = 'date',     // 'date' | 'likes'
+        sortOrder = 'desc',  // 'asc' | 'desc'
+        filters = {}
+    }) {
         const { categoryIds = [], dateFrom = null, dateTo = null, status = null } = filters;
 
         const params = [];
         const where = [];
         let joins = '';
 
+        // active / inactive
         if (onlyActive) {
             where.push("p.status = 'active'");
         } else if (status && status !== 'all') {
-            where.push("p.status = ?");
+            where.push('p.status = ?');
             params.push(status);
         }
 
-        if (dateFrom) { where.push("p.publish_date >= ?"); params.push(dateFrom); }
-        if (dateTo) { where.push("p.publish_date <= ?"); params.push(dateTo); }
+        // date filter
+        if (dateFrom) { where.push('p.publish_date >= ?'); params.push(dateFrom); }
+        if (dateTo) { where.push('p.publish_date <= ?'); params.push(dateTo); }
 
-        if (Array.isArray(categoryIds) && categoryIds.length) {
-            joins += " JOIN post_categories pc ON pc.post_id = p.id ";
-            where.push(`pc.category_id IN (${categoryIds.map(() => '?').join(',')})`);
+        // categories filter
+        if (categoryIds.length) {
+            const inPlaceholders = categoryIds.map(() => '?').join(',');
+            where.push(`
+      EXISTS (
+        SELECT 1
+        FROM post_categories pc
+        WHERE pc.post_id = p.id AND pc.category_id IN (${inPlaceholders})
+      )
+    `);
             params.push(...categoryIds);
         }
 
         joins += `
-            LEFT JOIN (
-            SELECT entity_id AS post_id,
-                    SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
-            FROM likes
-            WHERE entity_type = 'post'
-            GROUP BY entity_id
-            ) l ON l.post_id = p.id
-        `;
+    LEFT JOIN (
+      SELECT
+        entity_id AS post_id,
+        SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
+      FROM likes
+      WHERE entity_type = 'post'
+      GROUP BY entity_id
+    ) lc ON lc.post_id = p.id
+  `;
 
-        const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-        console.log('WHERE:', whereSql, params);
+        const orderDir = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+        let orderSql = ` ORDER BY p.publish_date ${orderDir}, p.id ${orderDir} `;
 
-        // ORDER BY
-        const dir = (String(sortOrder).toLowerCase() === 'asc') ? 'ASC' : 'DESC';
-        let orderBy;
-        if (String(sortBy).toLowerCase() === 'likes') {
-            orderBy = `ORDER BY p.locked_by_author DESC, COALESCE(l.likes_count, 0) ${dir}, p.publish_date DESC`;
-        } else { // 'date' за замовчуванням
-            orderBy = `ORDER BY p.locked_by_author DESC, p.publish_date ${dir}`;
+        if (sortBy === 'likes') {
+            orderSql = ` ORDER BY COALESCE(lc.likes_count, 0) ${orderDir}, p.publish_date DESC, p.id DESC `;
         }
-        console.log('ORDER BY:', orderBy);
+
+        const whereSql = where.length ? ` WHERE ${where.join(' AND ')} ` : '';
 
         const sql = `
-            SELECT p.*, COALESCE(l.likes_count, 0) AS likesCount
-            FROM posts p
-            ${joins}
-            ${whereSql}
-            GROUP BY p.id
-            ${orderBy}
-            LIMIT ? OFFSET ?
-        `;
+    SELECT
+      p.id,
+      p.title,
+      p.content,
+      p.author_id       AS authorId,
+      p.publish_date    AS publishDate,
+      p.status,
+      p.locked_by_author AS lockedByAuthor,
+      COALESCE(lc.likes_count, 0) AS likesCount
+    FROM posts p
+    ${joins}
+    ${whereSql}
+    ${orderSql}
+    LIMIT ? OFFSET ?
+  `;
 
-        const [rows] = await pool.query(sql, [...params, limit, offset]);
-        return rows.map(r => this.#mapPost(r, { includeLikes: true }));
+        const countSql = `
+    SELECT COUNT(*) AS cnt
+    FROM posts p
+    ${categoryIds.length ? `
+      WHERE ${where.filter(w => !w.includes('EXISTS')).join(' AND ') || '1=1'}
+      ${where.some(w => w.includes('EXISTS')) ? `
+        AND EXISTS (
+          SELECT 1 FROM post_categories pc
+          WHERE pc.post_id = p.id AND pc.category_id IN (${categoryIds.map(() => '?').join(',')})
+        )
+      ` : ''}
+    ` : (where.length ? ` WHERE ${where.join(' AND ')}` : '')}
+  `;
+
+        const paramsWithLimit = params.concat([Number(limit), Number(offset)]);
+
+        const [rows] = await pool.query(sql, paramsWithLimit);
+        const [countRows] = await pool.query(countSql, categoryIds.length ? params.filter(x => !Array.isArray(x)).concat(categoryIds) : params);
+
+        return rows.map(r => new Post(r));
     }
 
     async countAll({ onlyActive = false, filters = {} }) {
@@ -69,34 +105,30 @@ class PostRepository {
 
         const params = [];
         const where = [];
-        let joins = '';
 
         if (onlyActive) {
             where.push("p.status = 'active'");
         } else if (status && status !== 'all') {
-            where.push("p.status = ?");
+            where.push('p.status = ?');
             params.push(status);
         }
+        if (dateFrom) { where.push('p.publish_date >= ?'); params.push(dateFrom); }
+        if (dateTo) { where.push('p.publish_date <= ?'); params.push(dateTo); }
 
-        if (dateFrom) { where.push("p.publish_date >= ?"); params.push(dateFrom); }
-        if (dateTo) { where.push("p.publish_date <= ?"); params.push(dateTo); }
+        let whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
 
-        if (Array.isArray(categoryIds) && categoryIds.length) {
-            joins += " JOIN post_categories pc ON pc.post_id = p.id ";
-            where.push(`pc.category_id IN (${categoryIds.map(() => '?').join(',')})`);
+        if (categoryIds.length) {
+            const inPh = categoryIds.map(() => '?').join(',');
+            whereSql = `${whereSql ? whereSql + ' AND ' : ' WHERE '} EXISTS (
+      SELECT 1 FROM post_categories pc
+      WHERE pc.post_id = p.id AND pc.category_id IN (${inPh})
+    )`;
             params.push(...categoryIds);
         }
 
-        const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
-
-        const sql = `
-            SELECT COUNT(DISTINCT p.id) AS cnt
-            FROM posts p
-            ${joins}
-            ${whereSql}
-        `;
-        const [rows] = await pool.query(sql, params);
-        return rows[0]?.cnt || 0;
+        const countSql = `SELECT COUNT(*) AS cnt FROM posts p ${whereSql}`;
+        const [rows] = await pool.query(countSql, params);
+        return rows?.[0]?.cnt || 0;
     }
 
     async findById(id) {
