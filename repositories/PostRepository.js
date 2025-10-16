@@ -10,7 +10,7 @@ class PostRepository {
         sortOrder = 'desc',  // 'asc' | 'desc'
         filters = {}
     }) {
-        const { categoryIds = [], dateFrom = null, dateTo = null, status = null } = filters;
+        const { categoryIds = [], dateFrom = null, dateTo = null, status = null, authorId = null } = filters;
 
         const params = [];
         const where = [];
@@ -27,6 +27,7 @@ class PostRepository {
         // date filter
         if (dateFrom) { where.push('p.publish_date >= ?'); params.push(dateFrom); }
         if (dateTo) { where.push('p.publish_date <= ?'); params.push(dateTo); }
+        if (authorId) { where.push('p.author_id = ?'); params.push(Number(authorId)); }
 
         // categories filter
         if (categoryIds.length) {
@@ -101,7 +102,7 @@ class PostRepository {
     }
 
     async countAll({ onlyActive = false, filters = {} }) {
-        const { categoryIds = [], dateFrom = null, dateTo = null, status = null } = filters;
+        const { categoryIds = [], dateFrom = null, dateTo = null, status = null, authorId = null } = filters;
 
         const params = [];
         const where = [];
@@ -114,6 +115,7 @@ class PostRepository {
         }
         if (dateFrom) { where.push('p.publish_date >= ?'); params.push(dateFrom); }
         if (dateTo) { where.push('p.publish_date <= ?'); params.push(dateTo); }
+        if (authorId) { where.push('p.author_id = ?'); params.push(Number(authorId)); }
 
         let whereSql = where.length ? ` WHERE ${where.join(' AND ')}` : '';
 

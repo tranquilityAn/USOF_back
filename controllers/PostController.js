@@ -12,17 +12,16 @@ class PostController {
                 dateFrom,
                 dateTo,
                 status,
+                authorId,
             } = req.query;
 
             const sortMap = { date: 'date', likes: 'likes' };
             const sortBy = sortMap[sort] || 'date';
             const sortOrder = (order || '').toLowerCase() === 'asc' ? 'asc' : 'desc';
 
-            const categoryIds = Array.isArray(categories)
-                ? categories.map(Number).filter(Boolean)
-                : (typeof categories === 'string' && categories.length
-                    ? categories.split(',').map(Number).filter(Boolean)
-                    : []);
+            const categoryIds = categories
+                ? String(categories).split(',').map(Number).filter(Boolean)
+                : [];
 
             const filters = {
                 categoryIds,
@@ -30,21 +29,25 @@ class PostController {
                 dateTo: dateTo || null,
                 status: status || null,
             };
+            if (authorId) {
+                const parsed = Number(authorId);
+                if (!Number.isNaN(parsed)) filters.authorId = parsed;
+            }
 
-            const isAdmin = !!req.user && req.user.role === 'admin';
-            const currentUserId = req.user?.id ?? null;
+            const isAdmin = req.user?.role === 'admin';
+            const currentUserId = req.user?.id || null;
 
-            const data = await PostService.getAllPosts({
+            const { items, total } = await PostService.getAllPosts({
                 page: Number(page),
                 limit: Number(limit),
                 isAdmin,
                 currentUserId,
-                sortBy,
-                sortOrder,
+                sortBy: sort,
+                sortOrder: order,
                 filters,
             });
 
-            res.json(data);
+            return res.json({ items, total, page: Number(page), limit: Number(limit) });
         } catch (err) {
             next(err);
         }
