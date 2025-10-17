@@ -14,19 +14,28 @@ class CommentRepository {
     }
 
     async findTopLevelByPost(postId, { limit = 20, offset = 0, onlyActive = false } = {}) {
-        const whereStatus = onlyActive ? "AND c.status = 'active'" : "";
+        const whereStatusSelf = onlyActive ? "AND c.status = 'active'" : "";
+        const whereStatusChildren = onlyActive ? "AND r.status = 'active'" : "";
+
         const [rows] = await pool.query(
             `
-      SELECT
-        c.*,
-        (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id AND r.post_id = c.post_id ${onlyActive ? "AND r.status = 'active'" : ""}) AS reply_count
-      FROM comments c
-      WHERE c.post_id = ? AND c.parent_id IS NULL ${whereStatus}
-      ORDER BY c.publish_date ASC, c.id ASC
-      LIMIT ? OFFSET ?
-      `,
-            [postId, limit, offset]
+            SELECT
+                c.*,
+                COALESCE(rc.reply_count, 0) AS reply_count
+            FROM comments c
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) AS reply_count
+                FROM comments r
+                WHERE r.post_id = ? ${whereStatusChildren}
+                GROUP BY parent_id
+            ) rc ON rc.parent_id = c.id
+            WHERE c.post_id = ? AND c.parent_id IS NULL ${whereStatusSelf}
+            ORDER BY c.locked DESC, c.publish_date ASC, c.id ASC
+            LIMIT ? OFFSET ?
+            `,
+            [postId, postId, limit, offset]
         );
+
         return rows.map(r => this.#mapComment(r, { withReplyCount: true }));
     }
 
@@ -40,17 +49,29 @@ class CommentRepository {
     }
 
     async findReplies(postId, parentId, { limit = 20, offset = 0, onlyActive = false } = {}) {
-        const whereStatus = onlyActive ? "AND status = 'active'" : "";
+        const whereStatusSelf = onlyActive ? "AND c.status = 'active'" : "";
+        const whereStatusChildren = onlyActive ? "AND r.status = 'active'" : "";
+
         const [rows] = await pool.query(
             `
-      SELECT * FROM comments
-      WHERE post_id = ? AND parent_id = ? ${whereStatus}
-      ORDER BY publish_date ASC, id ASC
-      LIMIT ? OFFSET ?
-      `,
-            [postId, parentId, limit, offset]
+            SELECT
+                c.*,
+                COALESCE(rc.reply_count, 0) AS reply_count
+            FROM comments c
+            LEFT JOIN (
+                SELECT parent_id, COUNT(*) AS reply_count
+                FROM comments r
+                WHERE r.post_id = ? ${whereStatusChildren}
+                GROUP BY parent_id
+            ) rc ON rc.parent_id = c.id
+            WHERE c.post_id = ? AND c.parent_id = ? ${whereStatusSelf}
+            ORDER BY c.publish_date ASC, c.id ASC
+            LIMIT ? OFFSET ?
+            `,
+            [postId, postId, parentId, limit, offset]
         );
-        return rows.map(r => this.#mapComment(r));
+
+        return rows.map(r => this.#mapComment(r, { withReplyCount: true }));
     }
 
     async countReplies(postId, parentId, { onlyActive = false } = {}) {

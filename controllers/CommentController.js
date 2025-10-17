@@ -24,10 +24,7 @@ class CommentController {
             const limit = Number(req.query.limit ?? 20);
             const isAdmin = req.user?.role === 'admin';
             const data = await CommentService.getReplies(postId, commentId, { page, limit, isAdmin });
-            res.json({
-                ...data,
-                items: data.items.map(c => c.toJSON()),
-            });
+            res.json(data);
         } catch (err) { next(err); }
     }
 

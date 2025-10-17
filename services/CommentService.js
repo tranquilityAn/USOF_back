@@ -26,14 +26,21 @@ class CommentService {
         return { items, total, page, limit };
     }
 
-    async getReplies(postId, parentId, { page = 1, limit = 20, isAdmin = false } = {}) {
-        const onlyActive = !isAdmin;
+    async getReplies(postId, commentId, { page = 1, limit = 20, isAdmin = false } = {}) {
         const offset = (page - 1) * limit;
+        const onlyActive = !isAdmin;
+        
         const [items, total] = await Promise.all([
-            commentRepo.findReplies(postId, parentId, { limit, offset, onlyActive }),
-            commentRepo.countReplies(postId, parentId, { onlyActive }),
+            commentRepo.findReplies(postId, commentId, { limit, offset, onlyActive }),
+            commentRepo.countReplies(postId, commentId, { onlyActive }),
         ]);
-        return { items, total, page, limit };
+
+        return {
+            items: items.map(c => c.toJSON()),
+            total,
+            page,
+            limit,
+        };
     }
 
     async addComment(postId, { content, parentId }, currentUser) {
