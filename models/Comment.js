@@ -9,6 +9,8 @@ export default class Comment extends BaseModel {
         publishDate = new Date(),
         updatedAt = new Date(),
         locked,
+        parentId = null,
+        replyCount = undefined,
     }) {
         super(id);
         this.postId = postId;
@@ -17,6 +19,8 @@ export default class Comment extends BaseModel {
         this.publishDate = publishDate;
         this.updatedAt = updatedAt;
         this.locked = !!locked;
+        this.parentId = parentId;
+        this.replyCount = replyCount;
     }
 
     toJSON() {
@@ -29,6 +33,8 @@ export default class Comment extends BaseModel {
             publishDate: obj.publishDate,
             updatedAt: obj.updatedAt,
             locked: obj.locked,
+            parentId: obj.parentId,
+            ...(obj.replyCount !== undefined ? { replyCount: obj.replyCount } : {}),
         };
     }
 }

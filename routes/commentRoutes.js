@@ -5,6 +5,8 @@ import likeRoutes from './likeRoutes.js';
 
 const router = express.Router({ mergeParams: true }); 
 
+router.get('/', optionalAuth, CommentController.getComments); // top-level
+router.get('/:comment_id/replies', optionalAuth, CommentController.getReplies); // 
 
 // --- PUBLIC ---
 router.get('/', optionalAuth, CommentController.getComments); // GET /api/posts/:post_id/comments

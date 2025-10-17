@@ -214,6 +214,13 @@ async function initDB() {
             END;
         `);
 
+        await connection.query (`
+            ALTER TABLE comments
+                ADD COLUMN parent_id INT NULL AFTER post_id,
+                ADD CONSTRAINT fk_comments_parent
+                    FOREIGN KEY (parent_id) REFERENCES comments(id) ON DELETE CASCADE;
+        `);
+
         console.log("Tables created");
 
         await connection.end();

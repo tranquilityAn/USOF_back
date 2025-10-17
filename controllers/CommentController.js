@@ -1,15 +1,34 @@
 import CommentService from '../services/CommentService.js';
 
 class CommentController {
+    // GET /api/posts/:post_id/comments?page&limit  (only top-level)
     async getComments(req, res, next) {
         try {
-            const { post_id } = req.params;
+            const postId = Number(req.params.post_id);
+            const page = Number(req.query.page ?? 1);
+            const limit = Number(req.query.limit ?? 20);
             const isAdmin = req.user?.role === 'admin';
-            const comments = await CommentService.getCommentsByPost(post_id, { isAdmin });
-            res.json(comments.map(c => c.toJSON()));
-        } catch (err) {
-            next(err);
-        }
+            const data = await CommentService.getTopLevel(postId, { page, limit, isAdmin });
+            res.json({
+                ...data,
+                items: data.items.map(c => c.toJSON()),
+            });
+        } catch (err) { next(err); }
+    }
+
+    async getReplies(req, res, next) {
+        try {
+            const postId = Number(req.params.post_id);
+            const commentId = Number(req.params.comment_id);
+            const page = Number(req.query.page ?? 1);
+            const limit = Number(req.query.limit ?? 20);
+            const isAdmin = req.user?.role === 'admin';
+            const data = await CommentService.getReplies(postId, commentId, { page, limit, isAdmin });
+            res.json({
+                ...data,
+                items: data.items.map(c => c.toJSON()),
+            });
+        } catch (err) { next(err); }
     }
 
     async getComment(req, res, next) {
@@ -24,13 +43,11 @@ class CommentController {
 
     async addComment(req, res, next) {
         try {
-            const { post_id } = req.params;
-            const { content } = req.body;
-            const comment = await CommentService.addComment(post_id, req.user.id, content);
-            res.status(201).json(comment.toJSON());
-        } catch (err) {
-            next(err);
-        }
+            const postId = Number(req.params.post_id);
+            const { content, parentId = null } = req.body ?? {};
+            const created = await CommentService.addComment(postId, { content, parentId }, req.user);
+            res.status(201).json(created.toJSON());
+        } catch (err) { next(err); }
     }
 
     async updateComment(req, res, next) {

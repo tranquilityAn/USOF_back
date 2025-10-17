@@ -13,12 +13,61 @@ class CommentRepository {
         return rows[0] ? this.#mapComment(rows[0]) : null;
     }
 
-    async create({ postId, authorId, content }) {
-        const [result] = await pool.query(
-            "INSERT INTO comments (post_id, author_id, content, publish_date) VALUES (?, ?, ?, NOW())",
-            [postId, authorId, content]
+    async findTopLevelByPost(postId, { limit = 20, offset = 0, onlyActive = false } = {}) {
+        const whereStatus = onlyActive ? "AND c.status = 'active'" : "";
+        const [rows] = await pool.query(
+            `
+      SELECT
+        c.*,
+        (SELECT COUNT(*) FROM comments r WHERE r.parent_id = c.id AND r.post_id = c.post_id ${onlyActive ? "AND r.status = 'active'" : ""}) AS reply_count
+      FROM comments c
+      WHERE c.post_id = ? AND c.parent_id IS NULL ${whereStatus}
+      ORDER BY c.publish_date ASC, c.id ASC
+      LIMIT ? OFFSET ?
+      `,
+            [postId, limit, offset]
         );
-        return new Comment({ id: result.insertId, postId, authorId, content });
+        return rows.map(r => this.#mapComment(r, { withReplyCount: true }));
+    }
+
+    async countTopLevelByPost(postId, { onlyActive = false } = {}) {
+        const whereStatus = onlyActive ? "AND status = 'active'" : "";
+        const [rows] = await pool.query(
+            `SELECT COUNT(*) AS cnt FROM comments WHERE post_id = ? AND parent_id IS NULL ${whereStatus}`,
+            [postId]
+        );
+        return rows[0]?.cnt ?? 0;
+    }
+
+    async findReplies(postId, parentId, { limit = 20, offset = 0, onlyActive = false } = {}) {
+        const whereStatus = onlyActive ? "AND status = 'active'" : "";
+        const [rows] = await pool.query(
+            `
+      SELECT * FROM comments
+      WHERE post_id = ? AND parent_id = ? ${whereStatus}
+      ORDER BY publish_date ASC, id ASC
+      LIMIT ? OFFSET ?
+      `,
+            [postId, parentId, limit, offset]
+        );
+        return rows.map(r => this.#mapComment(r));
+    }
+
+    async countReplies(postId, parentId, { onlyActive = false } = {}) {
+        const whereStatus = onlyActive ? "AND status = 'active'" : "";
+        const [rows] = await pool.query(
+            `SELECT COUNT(*) AS cnt FROM comments WHERE post_id = ? AND parent_id = ? ${whereStatus}`,
+            [postId, parentId]
+        );
+        return rows[0]?.cnt ?? 0;
+    }
+
+    async create({ postId, authorId, content, parentId = null }) {
+        const [result] = await pool.query(
+            "INSERT INTO comments (post_id, author_id, content, parent_id, publish_date) VALUES (?, ?, ?, ?, NOW())",
+            [postId, authorId, content, parentId]
+        );
+        return this.findById(result.insertId);
     }
 
     async updateStatus(id, status) {
@@ -49,15 +98,16 @@ class CommentRepository {
         return this.findById(id);
     }
 
-    #mapComment(row) {
+    #mapComment(row, { withReplyCount = false } = {}) {
         return new Comment({
             id: row.id,
             postId: row.post_id,
             authorId: row.author_id,
             content: row.content,
             publishDate: row.publish_date,
-            //updatedAt: row.updated_at,
-            locked: row.locked === 1 || row.locked === true,
+            locked: row.locked === 1 || row.locked === true || row.locked === '1',
+            parentId: row.parent_id ?? null,
+            replyCount: withReplyCount ? (row.reply_count ?? 0) : undefined,
         });
     }
 
@@ -65,10 +115,10 @@ class CommentRepository {
         const map = {
             content: "content",
             status: "status",
-            locked: "locked", // <-- додати
+            locked: "locked",
         };
         return map[field] || field;
     }
 }
 
-export default new CommentRepository
+export default new CommentRepository;

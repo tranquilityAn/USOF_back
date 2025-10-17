@@ -16,9 +16,49 @@ class CommentService {
         return comment;
     }
 
-    async addComment(postId, userId, content) {
-        if (!content) throw new Error('Content is required');
-        return await commentRepo.create({ postId, authorId: userId, content });
+    async getTopLevel(postId, { page = 1, limit = 20, isAdmin = false } = {}) {
+        const onlyActive = !isAdmin;
+        const offset = (page - 1) * limit;
+        const [items, total] = await Promise.all([
+            commentRepo.findTopLevelByPost(postId, { limit, offset, onlyActive }),
+            commentRepo.countTopLevelByPost(postId, { onlyActive }),
+        ]);
+        return { items, total, page, limit };
+    }
+
+    async getReplies(postId, parentId, { page = 1, limit = 20, isAdmin = false } = {}) {
+        const onlyActive = !isAdmin;
+        const offset = (page - 1) * limit;
+        const [items, total] = await Promise.all([
+            commentRepo.findReplies(postId, parentId, { limit, offset, onlyActive }),
+            commentRepo.countReplies(postId, parentId, { onlyActive }),
+        ]);
+        return { items, total, page, limit };
+    }
+
+    async addComment(postId, { content, parentId }, currentUser) {
+        if (!content || !content.trim()) {
+            const e = new Error('Content is required'); e.status = 400; throw e;
+        }
+
+        const post = await postRepo.findById(postId);
+        if (!post) { const e = new Error('Post not found'); e.status = 404; throw e; }
+
+        if (parentId != null) {
+            const parent = await commentRepo.findById(parentId);
+            if (!parent || parent.postId !== postId) {
+                const e = new Error('Invalid parentId'); e.status = 400; throw e;
+            }
+        }
+
+        const created = await commentRepo.create({
+            postId,
+            authorId: currentUser.id,
+            content: content.trim(),
+            parentId: parentId ?? null,
+        });
+
+        return created;
     }
 
     async updateComment(commentId, user, fields) {
