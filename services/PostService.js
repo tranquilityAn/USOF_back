@@ -158,14 +158,13 @@ class PostService {
         };
     }
 
-
-    async deletePost(postId, userId) {
+    async deletePost(postId, currentUser) {
         const post = await postRepo.findById(postId);
-        if (!post) throw new Error('Post not found');
+        if (!post) { const e = new Error('Post not found'); e.status = 404; throw e; }
 
-        if (post.authorId !== userId) {
-            throw new Error('Forbidden: not your post');
-        }
+        const isOwner = post.authorId === currentUser.id;
+        const isAdmin = currentUser.role === 'admin';
+        if (!isOwner && !isAdmin) { const e = new Error('Forbidden'); e.status = 403; throw e; }
 
         await postRepo.delete(postId);
         return true;

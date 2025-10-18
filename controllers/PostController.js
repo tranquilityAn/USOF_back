@@ -34,7 +34,8 @@ class PostController {
                 if (!Number.isNaN(parsed)) filters.authorId = parsed;
             }
 
-            const isAdmin = req.user?.role === 'admin';
+            //const isAdmin = req.user?.role === 'admin';
+            const isAdmin = (req.user?.role || '').toLowerCase() === 'admin';
             const currentUserId = req.user?.id || null;
 
             const { items, total } = await PostService.getAllPosts({
@@ -109,14 +110,13 @@ class PostController {
 
     async deletePost(req, res, next) {
         try {
-            const { post_id } = req.params;
-            await PostService.deletePost(post_id, req.user.id);
+            const postId = Number(req.params.post_id);
+            await PostService.deletePost(postId, req.user); // pass full user (id + role)
             res.json({ message: 'Post deleted successfully' });
         } catch (err) {
-            res.status(err.status || 500).json({ message: err.message || 'Internal error' });
+            next(err);
         }
     }
-
     async getCategories(req, res, next) {
         try {
             const { post_id } = req.params;
