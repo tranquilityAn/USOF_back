@@ -10,6 +10,7 @@ export default class Post extends BaseModel {
         //updatedAt = new Date(),
         status = 'active',
         lockedByAuthor,
+        commentsCount = 0,
     }) {
         super(id);
         this.title = title;
@@ -19,6 +20,7 @@ export default class Post extends BaseModel {
         //this.updatedAt = updatedAt;
         this.status = status;
         this.lockedByAuthor = !!lockedByAuthor;
+        this.commentsCount = commentsCount;
     }
 
     toJSON() {
@@ -32,6 +34,7 @@ export default class Post extends BaseModel {
             //updatedAt: obj.updatedAt,
             status: this.status,
             lockedByAuthor: obj.lockedByAuthor,
+            commentsCount: obj.commentsCount,
         };
     }
 }

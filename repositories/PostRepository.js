@@ -43,15 +43,25 @@ class PostRepository {
         }
 
         joins += `
-    LEFT JOIN (
-      SELECT
-        entity_id AS post_id,
-        SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
-      FROM likes
-      WHERE entity_type = 'post'
-      GROUP BY entity_id
-    ) lc ON lc.post_id = p.id
-  `;
+            LEFT JOIN (
+            SELECT
+                entity_id AS post_id,
+                SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
+            FROM likes
+            WHERE entity_type = 'post'
+            GROUP BY entity_id
+            ) lc ON lc.post_id = p.id
+        `;
+
+        joins += `
+            LEFT JOIN (
+                SELECT
+                    post_id,
+                    COUNT(*) AS comments_count
+                FROM comments
+                GROUP BY post_id
+            ) cc ON cc.post_id = p.id
+        `;
 
         const orderDir = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
         let orderSql = ` ORDER BY p.publish_date ${orderDir}, p.id ${orderDir} `;
@@ -67,11 +77,12 @@ class PostRepository {
       p.id,
       p.title,
       p.content,
-      p.author_id       AS authorId,
-      p.publish_date    AS publishDate,
+      p.author_id        AS authorId,
+      p.publish_date     AS publishDate,
       p.status,
       p.locked_by_author AS lockedByAuthor,
-      COALESCE(lc.likes_count, 0) AS likesCount
+      COALESCE(lc.likes_count, 0)   AS likesCount,
+      COALESCE(cc.comments_count, 0) AS commentsCount
     FROM posts p
     ${joins}
     ${whereSql}
@@ -94,7 +105,6 @@ class PostRepository {
   `;
 
         const paramsWithLimit = params.concat([Number(limit), Number(offset)]);
-
         const [rows] = await pool.query(sql, paramsWithLimit);
         const [countRows] = await pool.query(countSql, categoryIds.length ? params.filter(x => !Array.isArray(x)).concat(categoryIds) : params);
 
@@ -134,8 +144,37 @@ class PostRepository {
     }
 
     async findById(id) {
-        const [rows] = await pool.query("SELECT * FROM posts WHERE id = ?", [id]);
-        return rows[0] ? this.#mapPost(rows[0]) : null;
+        const sql = `
+      SELECT
+        p.id,
+        p.title,
+        p.content,
+        p.author_id        AS authorId,
+        p.publish_date     AS publishDate,
+        p.status,
+        p.locked_by_author AS lockedByAuthor,
+        COALESCE(lc.likes_count, 0)    AS likesCount,
+        COALESCE(cc.comments_count, 0) AS commentsCount
+      FROM posts p
+      LEFT JOIN (
+        SELECT
+          entity_id AS post_id,
+          SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
+        FROM likes
+        WHERE entity_type = 'post'
+        GROUP BY entity_id
+      ) lc ON lc.post_id = p.id
+      LEFT JOIN (
+        SELECT
+          post_id,
+          COUNT(*) AS comments_count
+        FROM comments
+        GROUP BY post_id
+      ) cc ON cc.post_id = p.id
+      WHERE p.id = ?
+    `;
+        const [rows] = await pool.query(sql, [id]);
+        return rows[0] ? new Post(rows[0]) : null;
     }
 
     async create({ title, content, authorId }) {
@@ -202,7 +241,7 @@ class PostRepository {
         return rows[0]?.cnt === categoryIds.length;
     }
 
-    #mapPost(row, { includeLikes = false } = {}) {
+    #mapPost(row, { includeLikes = false, includeComments = false } = {}) {
         return new Post({
             id: row.id,
             title: row.title,
@@ -212,6 +251,7 @@ class PostRepository {
             status: row.status,
             lockedByAuthor: row.locked_by_author,
             likesCount: includeLikes ? (row.likesCount ?? 0) : undefined,
+            commentsCount: includeComments ? (row.commentsCount ?? 0) : undefined,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
         });
