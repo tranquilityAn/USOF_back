@@ -29,7 +29,7 @@ class CommentService {
     async getReplies(postId, commentId, { page = 1, limit = 20, isAdmin = false } = {}) {
         const offset = (page - 1) * limit;
         const onlyActive = !isAdmin;
-        
+
         const [items, total] = await Promise.all([
             commentRepo.findReplies(postId, commentId, { limit, offset, onlyActive }),
             commentRepo.countReplies(postId, commentId, { onlyActive }),
@@ -95,14 +95,13 @@ class CommentService {
         return await commentRepo.updateStatus(commentId, status);
     }
 
-
-    async deleteComment(commentId, userId) {
+    async deleteComment(commentId, currentUser) {
         const comment = await commentRepo.findById(commentId);
-        if (!comment) throw new Error('Comment not found');
+        if (!comment) { const e = new Error('Comment not found'); e.status = 404; throw e; }
 
-        if (comment.authorId !== userId) {
-            throw new Error('Forbidden: not your comment');
-        }
+        const isOwner = comment.authorId === currentUser.id;
+        const isAdmin = currentUser.role === 'admin';
+        if (!isOwner && !isAdmin) { const e = new Error('Forbidden'); e.status = 403; throw e; }
 
         await commentRepo.delete(commentId);
         return true;
