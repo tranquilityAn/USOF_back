@@ -1,6 +1,6 @@
 import express from 'express';
 import UserController from '../controllers/UserController.js';
-import { authMiddleware, roleMiddleware} from '../middlewares/authMiddleware.js';
+import { authMiddleware, roleMiddleware, selfOrRole } from '../middlewares/authMiddleware.js';
 import { avatarUpload } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();
@@ -28,6 +28,6 @@ router.patch('/avatar',
 router.patch('/:user_id', UserController.update);
 
 // Удалить пользователя
-router.delete('/:user_id', roleMiddleware(['admin']), UserController.delete);
+router.delete('/:user_id', selfOrRole(['admin']), UserController.delete);
 
 export default router;

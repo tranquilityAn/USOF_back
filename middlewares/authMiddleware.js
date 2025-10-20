@@ -48,3 +48,21 @@ export function optionalAuth(req, res, next) {
         next();
     });
 }
+
+export function selfOrRole(roles = []) {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+        const paramId = Number(req.params.user_id);
+        const meId = Number(req.user.id);
+
+        if (Number.isFinite(paramId) && Number.isFinite(meId) && paramId === meId) {
+            return next();
+        }
+        if (roles.includes(req.user.role)) {
+            return next();
+        }
+        return res.status(403).json({ error: 'Forbidden: insufficient rights' });
+    };
+}
