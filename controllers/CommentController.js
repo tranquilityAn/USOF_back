@@ -53,7 +53,7 @@ class CommentController {
             const result = await CommentService.updateComment(commentId, req.user, {
                 status: req.body.status,
             });
-            res.json(result);
+            res.json(result.toJSON());
         } catch (err) {
             res.status(err.status || 500).json({ message: err.message || 'Internal error' });
         }

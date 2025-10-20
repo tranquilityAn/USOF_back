@@ -11,6 +11,7 @@ export default class Comment extends BaseModel {
         locked,
         parentId = null,
         replyCount = undefined,
+        status,
     }) {
         super(id);
         this.postId = postId;
@@ -21,6 +22,7 @@ export default class Comment extends BaseModel {
         this.locked = !!locked;
         this.parentId = parentId;
         this.replyCount = replyCount;
+        this.status = status;
     }
 
     toJSON() {
@@ -35,6 +37,7 @@ export default class Comment extends BaseModel {
             locked: obj.locked,
             parentId: obj.parentId,
             ...(obj.replyCount !== undefined ? { replyCount: obj.replyCount } : {}),
+            status: obj.status,
         };
     }
 }

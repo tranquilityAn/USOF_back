@@ -128,6 +128,7 @@ class CommentRepository {
             publishDate: row.publish_date,
             locked: row.locked === 1 || row.locked === true || row.locked === '1',
             parentId: row.parent_id ?? null,
+            status: row.status,
             replyCount: withReplyCount ? (row.reply_count ?? 0) : undefined,
         });
     }
