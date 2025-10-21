@@ -95,6 +95,14 @@ class AuthController {
             error: 'This is an API endpoint. Use POST /api/auth/password-reset/:token with { newPassword }.'
         });
     }
+
+    async redirectVerifyToFrontend(req, res) {
+        const { token } = req.params;
+        const base = process.env.FRONTEND_BASE_URL || process.env.PUBLIC_BASE_URL;
+        if (base) return res.redirect(302, `${base}/verify?token=${token}`);
+        return res.status(400).json({ error: 'Open this link in the frontend app.' });
+    }
+
 }
 
 export default new AuthController();

@@ -21,5 +21,7 @@ router.post('/password-reset/:token', AuthController.confirmPasswordReset);
 // (не обов'язково, але корисно) якщо користувач випадково відкриє API-лінк GET /password-reset/:token,
 // можемо чемно редіректнути на фронт, щоб не ловити "Cannot GET ..."
 router.get('/password-reset/:token', AuthController.redirectPasswordResetToFrontend);
+// routes/authRoutes.js
+router.get('/verify-email/:token/redirect', AuthController.redirectVerifyToFrontend);
 
 export default router;

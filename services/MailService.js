@@ -16,7 +16,8 @@ class MailService {
     }
 
     async sendEmailVerification(to, rawToken) {
-        const url = `${this.publicBase}/api/auth/verify-email/${rawToken}`;
+        const frontendBase = process.env.FRONTEND_BASE_URL || process.env.PUBLIC_BASE_URL;
+        const url = `${frontendBase}/verify?token=${rawToken}`;
         const html = `
       <h2>Email Verification</h2>
       <p>Hello! Please confirm your email address by clicking the link below:</p>
@@ -27,9 +28,8 @@ class MailService {
     }
 
     async sendPasswordReset(to, rawToken) {
-        //const url = `${this.publicBase}/api/auth/password-reset/${rawToken}`;
         const frontendBase = process.env.FRONTEND_BASE_URL || process.env.PUBLIC_BASE_URL;
-        const url = `${frontendBase}/reset?token=${rawToken}`; // <- ведемо на фронт
+        const url = `${frontendBase}/reset?token=${rawToken}`;
         const html = `
       <h2>Password Reset</h2>
       <p>You requested a password reset. Please click the link below to set a new password:</p>
