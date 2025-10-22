@@ -116,6 +116,13 @@ class UserService {
         const hashed = await bcrypt.hash(newPassword, 10);
         await UserRepository.updatePassword(userId, hashed);
     }
+
+    async getPublicByLogin(login) {
+        const u = await UserRepository.findByLogin(login);
+        if (!u) return null;
+        const { id, login: lg, fullName, avatar } = u.toJSON();
+        return { id, login: lg, fullName, avatar };
+    }
 }
 
 export default new UserService();

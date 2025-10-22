@@ -5,6 +5,9 @@ import { avatarUpload } from '../middlewares/uploadMiddleware.js';
 
 const router = express.Router();
 
+// Публичный поиск по логину (должен быть ДО :user_id)
+router.get('/by-login/:login', UserController.getByLoginPublic);
+
 // Получить конкретного пользователя
 router.get('/:user_id', UserController.getById);
 

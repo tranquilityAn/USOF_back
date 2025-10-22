@@ -81,6 +81,21 @@ class UserController {
             next(err);
         }
     }
+
+    async getByLoginPublic(req, res, next) {
+        try {
+            const { login } = req.params;
+            const user = await UserService.getPublicByLogin(login);
+            if (!user) {
+                const e = new Error('User not found');
+                e.status = 404;
+                throw e;
+            }
+            res.json({ id: user.id, login: user.login, fullName: user.fullName, avatar: user.avatar });
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 export default new UserController();
