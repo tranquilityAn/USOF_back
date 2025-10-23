@@ -18,7 +18,8 @@ class PostService {
         const offset = (page - 1) * limit;
 
         const effectiveFilters = { ...filters };
-        const onlyActive = !isAdmin;
+        const viewingOwnProfile = filters?.authorId && Number(filters.authorId) === Number(currentUserId);
+        const onlyActive = !(isAdmin || viewingOwnProfile);
 
         const [items, total] = await Promise.all([
             postRepo.findAll({ limit, offset, onlyActive, sortBy, sortOrder, filters: effectiveFilters }),
