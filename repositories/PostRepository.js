@@ -64,11 +64,19 @@ class PostRepository {
         `;
 
         const orderDir = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
-        let orderSql = ` ORDER BY p.publish_date ${orderDir}, p.id ${orderDir} `;
+
+        const orderParts = [];
+        
+        if (filters.authorId) {
+            orderParts.push('p.locked_by_author DESC');
+        }
 
         if (sortBy === 'likes') {
-            orderSql = ` ORDER BY COALESCE(lc.likes_count, 0) ${orderDir}, p.publish_date DESC, p.id DESC `;
+            orderParts.push(`COALESCE(lc.likes_count, 0) ${orderDir}`);
         }
+
+        orderParts.push(`p.publish_date ${orderDir}`, `p.id ${orderDir}`);
+        const orderSql = ' ORDER BY ' + orderParts.join(', ');
 
         const whereSql = where.length ? ` WHERE ${where.join(' AND ')} ` : '';
 
