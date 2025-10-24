@@ -66,7 +66,7 @@ class PostRepository {
         const orderDir = sortOrder.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
         const orderParts = [];
-        
+
         if (filters.authorId) {
             orderParts.push('p.locked_by_author DESC');
         }
@@ -81,42 +81,80 @@ class PostRepository {
         const whereSql = where.length ? ` WHERE ${where.join(' AND ')} ` : '';
 
         const sql = `
-    SELECT
-      p.id,
-      p.title,
-      p.content,
-      p.author_id        AS authorId,
-      p.publish_date     AS publishDate,
-      p.status,
-      p.locked_by_author AS lockedByAuthor,
-      COALESCE(lc.likes_count, 0)   AS likesCount,
-      COALESCE(cc.comments_count, 0) AS commentsCount
-    FROM posts p
-    ${joins}
-    ${whereSql}
-    ${orderSql}
-    LIMIT ? OFFSET ?
-  `;
+            SELECT
+                p.id,
+                p.title,
+                p.content,
+                p.author_id,
+                p.publish_date,
+                p.status,
+                p.locked_by_author,
+                COALESCE(lc.likes_count, 0)     AS likesCount,
+                COALESCE(cc.comments_count, 0)  AS commentsCount,
+                cats.cat_ids                    AS categoryIdsCsv,
+                cats.cats_json                  AS categoriesJson
+            FROM posts p
+
+            /* likes */
+            LEFT JOIN (
+                SELECT
+                entity_id AS post_id,
+                SUM(CASE WHEN type = 'like' THEN 1 ELSE 0 END) AS likes_count
+                FROM likes
+                WHERE entity_type = 'post'
+                GROUP BY entity_id
+            ) lc ON lc.post_id = p.id
+
+            /* comments */
+            LEFT JOIN (
+                SELECT
+                post_id,
+                COUNT(*) AS comments_count
+                FROM comments
+                GROUP BY post_id
+            ) cc ON cc.post_id = p.id
+
+            /* categories */
+            LEFT JOIN (
+                SELECT
+                t.post_id,
+                GROUP_CONCAT(t.category_id) AS cat_ids,
+                JSON_ARRAYAGG(JSON_OBJECT('id', t.category_id, 'title', t.title)) AS cats_json
+                FROM (
+                SELECT DISTINCT
+                    pc.post_id,
+                    c.id   AS category_id,
+                    c.title
+                FROM post_categories pc
+                JOIN categories c ON c.id = pc.category_id
+                ) AS t
+                GROUP BY t.post_id
+            ) AS cats ON cats.post_id = p.id
+
+            ${whereSql}
+            ${orderSql}
+            LIMIT ? OFFSET ?
+            `;
 
         const countSql = `
-    SELECT COUNT(*) AS cnt
-    FROM posts p
-    ${categoryIds.length ? `
-      WHERE ${where.filter(w => !w.includes('EXISTS')).join(' AND ') || '1=1'}
-      ${where.some(w => w.includes('EXISTS')) ? `
-        AND EXISTS (
-          SELECT 1 FROM post_categories pc
-          WHERE pc.post_id = p.id AND pc.category_id IN (${categoryIds.map(() => '?').join(',')})
-        )
-      ` : ''}
-    ` : (where.length ? ` WHERE ${where.join(' AND ')}` : '')}
-  `;
+            SELECT COUNT(*) AS cnt
+            FROM posts p
+            ${categoryIds.length ? `
+            WHERE ${where.filter(w => !w.includes('EXISTS')).join(' AND ') || '1=1'}
+            ${where.some(w => w.includes('EXISTS')) ? `
+                AND EXISTS (
+                SELECT 1 FROM post_categories pc
+                WHERE pc.post_id = p.id AND pc.category_id IN (${categoryIds.map(() => '?').join(',')})
+                )
+            ` : ''}
+            ` : (where.length ? ` WHERE ${where.join(' AND ')}` : '')}
+        `;
 
         const paramsWithLimit = params.concat([Number(limit), Number(offset)]);
         const [rows] = await pool.query(sql, paramsWithLimit);
         const [countRows] = await pool.query(countSql, categoryIds.length ? params.filter(x => !Array.isArray(x)).concat(categoryIds) : params);
 
-        return rows.map(r => new Post(r));
+        return rows.map(r => this.#mapPost(r));
     }
 
     async countAll({ onlyActive = false, filters = {} }) {
@@ -250,6 +288,22 @@ class PostRepository {
     }
 
     #mapPost(row, { includeLikes = false, includeComments = false } = {}) {
+        const catIds = typeof row.categoryIdsCsv === 'string' && row.categoryIdsCsv.length
+            ? row.categoryIdsCsv.split(',').map(n => Number(n)).filter(Number.isFinite)
+            : [];
+        let cats = [];
+        const raw = row.categoriesJson;
+        if (Array.isArray(raw)) {
+            cats = raw;
+        } else if (typeof raw === 'string' && raw.trim().length) {
+            try { cats = JSON.parse(raw); } catch { }
+        } else if (raw != null) {
+            try {
+                const s = Buffer.isBuffer(raw) ? raw.toString('utf8') : String(raw);
+                cats = JSON.parse(s);
+            } catch { }
+        }
+
         return new Post({
             id: row.id,
             title: row.title,
@@ -262,6 +316,8 @@ class PostRepository {
             commentsCount: includeComments ? (row.commentsCount ?? 0) : undefined,
             createdAt: row.created_at,
             updatedAt: row.updated_at,
+            categoryIds: catIds,
+            categories: cats
         });
     }
 

@@ -11,6 +11,8 @@ export default class Post extends BaseModel {
         status = 'active',
         lockedByAuthor,
         commentsCount = 0,
+        categoryIds = [],
+        categories = [],
     }) {
         super(id);
         this.title = title;
@@ -21,6 +23,8 @@ export default class Post extends BaseModel {
         this.status = status;
         this.lockedByAuthor = !!lockedByAuthor;
         this.commentsCount = commentsCount;
+        this.categoryIds = Array.isArray(categoryIds) ? categoryIds : [];
+        this.categories = Array.isArray(categories) ? categories : [];
     }
 
     toJSON() {
@@ -35,6 +39,8 @@ export default class Post extends BaseModel {
             status: this.status,
             lockedByAuthor: obj.lockedByAuthor,
             commentsCount: obj.commentsCount,
+            categoryIds: this.categoryIds,
+            categories: this.categories,
         };
     }
 }
