@@ -135,6 +135,59 @@ paths:
                 passwordConfirmation: { type: string, format: password }
       responses:
         "200": { description: Password updated }
+    get:
+      tags: [Auth]
+      summary: Redirect to frontend password reset page
+      description: |
+        Redirects user agent to the frontend reset page with the given token
+        (e.g. `/reset?token=...`). If frontend base URL is not set, returns 400 JSON.
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to frontend
+          headers:
+            Location:
+              description: Frontend URL where the client should be redirected
+              schema: { type: string, format: uri }
+        "400":
+          description: Frontend base URL is not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
+  /auth/verify-email/{token}/redirect:
+    get:
+      tags: [Auth]
+      summary: Redirect to frontend email verification page
+      description: |
+        Redirects user agent to the frontend verification page with the given token.
+        If FRONTEND_BASE_URL (or PUBLIC_BASE_URL) is not set, returns 400 JSON.
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema: { type: string }
+      responses:
+        "302":
+          description: Redirect to frontend
+          headers:
+            Location:
+              description: Frontend URL where the client should be redirected
+              schema: { type: string, format: uri }
+        "400":
+          description: Frontend base URL is not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
   /users:
     get:
       tags: [Users]
@@ -216,6 +269,33 @@ paths:
                   type: boolean
       responses:
         "200": { description: Avatar updated }
+  /users/by-login/{login}:
+    get:
+      tags: [Users]
+      summary: Get public user by login
+      description: |
+        Public lookup by login. Returns a minimal public profile.
+        Note: current implementation returns `avatar` field (not `profilePicture`).
+      parameters:
+        - in: path
+          name: login
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Public user by login
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPublicByLogin"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error: { type: string }
   /posts:
     get:
       tags: [Posts]
@@ -774,3 +854,10 @@ components:
         entityType: { type: string, enum: [post, comment] }
         entityId: { type: integer }
         publishDate: { type: string, format: date-time }
+    UserPublicByLogin:
+      type: object
+      properties:
+        id:        { type: integer }
+        login:     { type: string }
+        fullName:  { type: string }
+        avatar:    { type: string, nullable: true, description: "Avatar file name or URL (differs from profilePicture)" }
