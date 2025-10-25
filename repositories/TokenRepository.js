@@ -29,6 +29,17 @@ class TokenRepository {
             [userId, type]
         );
     }
+
+    async findLastByUserAndType(userId, type) {
+        const [rows] = await pool.query(
+            `SELECT created_at FROM user_tokens
+                WHERE user_id = ? AND type = ?
+                ORDER BY created_at DESC
+                LIMIT 1`,
+            [userId, type]
+        );
+        return rows[0] || null;
+    }
 }
 
 export default new TokenRepository();

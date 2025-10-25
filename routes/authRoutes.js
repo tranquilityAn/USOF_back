@@ -10,18 +10,17 @@ router.post('/logout', authMiddleware, AuthController.logout);
 
 // email verification
 router.get('/verify-email/:token', AuthController.verifyEmail);
-
 // password reset
 router.post('/password-reset', AuthController.requestPasswordReset);
-
-// JSON-перевірка токена (опційно, зручно для фронта)
+// JSON-перевірка токена
 router.get('/password-reset/:token/validate', AuthController.validatePasswordResetToken);
-// встановлення нового пароля
+// password reset
 router.post('/password-reset/:token', AuthController.confirmPasswordReset);
-// (не обов'язково, але корисно) якщо користувач випадково відкриє API-лінк GET /password-reset/:token,
-// можемо чемно редіректнути на фронт, щоб не ловити "Cannot GET ..."
 router.get('/password-reset/:token', AuthController.redirectPasswordResetToFrontend);
-// routes/authRoutes.js
 router.get('/verify-email/:token/redirect', AuthController.redirectVerifyToFrontend);
+router.post('/verify-email/resend', AuthController.resendEmailVerification);
+router.post('/verify-email/change', AuthController.changeEmail);
+router.get('/verify-email/ttl', AuthController.getVerifyEmailTtl);
+
 
 export default router;

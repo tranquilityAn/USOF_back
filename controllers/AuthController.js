@@ -103,6 +103,25 @@ class AuthController {
         return res.status(400).json({ error: 'Open this link in the frontend app.' });
     }
 
+    async resendEmailVerification(req, res, next) {
+        try {
+            const { login, email } = req.body;
+            const result = await AuthService.resendEmailVerification({ login, email });
+            res.json(result);
+        } catch (err) { next(err); }
+    }
+
+    async changeEmail(req, res, next) {
+        try {
+            const { login, newEmail } = req.body;
+            const result = await AuthService.changeEmail({ login, newEmail });
+            res.json(result);
+        } catch (err) { next(err); }
+    }
+
+    async getVerifyEmailTtl(req, res) {
+        res.json({ ttlMinutes: AuthService.getEmailVerifyTTL(), cooldownSec: AuthService.getResendCooldownSec() });
+    }
 }
 
 export default new AuthController();
