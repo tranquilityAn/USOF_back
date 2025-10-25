@@ -11,6 +11,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import commentRoutes from './routes/commentRoutes.js';
 import favoriteRoutes from './routes/favoriteRoutes.js';
 import { admin, router as adminRouter } from './admin/index.js'
+import { notFoundHandler, globalErrorHandler } from './middlewares/errorHandler.js';
 
 dotenv.config();
 
@@ -70,11 +71,9 @@ app.use('/api/posts/:post_id/comments', commentRoutes);
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// global error handler
-app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ error: 'Something went wrong!' });
-});
+app.use(notFoundHandler);
+
+app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

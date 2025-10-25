@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import TokenRepository from '../repositories/TokenRepository.js';
+import { badRequest } from '../errors/AppError.js';
 
 class TokenService {
     // генеруємо випадковий токен, зберігаємо SHA-256 у БД
@@ -25,8 +26,8 @@ class TokenService {
     async consumeToken(rawToken, expectedType) {
         const hash = crypto.createHash("sha256").update(rawToken).digest("hex");
         const rec = await TokenRepository.findActiveByHash(hash);
-        if (!rec) throw new Error("Token is invalid or expired");
-        if (rec.type !== expectedType) throw new Error("Token type mismatch");
+        if (!rec) throw badRequest('TOKEN_INVALID_OR_EXPIRED', 'Token is invalid or expired');
+        if (rec.type !== expectedType) throw badRequest('TOKEN_TYPE_MISMATCH', 'Token type mismatch');
 
         await TokenRepository.markUsed(hash);
         return rec; // містить user_id, meta, тощо
@@ -35,8 +36,8 @@ class TokenService {
     async peek(rawToken, expectedType) {
         const hash = crypto.createHash('sha256').update(rawToken).digest('hex');
         const rec = await TokenRepository.findActiveByHash(hash);
-        if (!rec) throw new Error("Token is invalid or expired");
-        if (rec.type !== expectedType) throw new Error("Token type mismatch");
+        if (!rec) throw badRequest('TOKEN_INVALID_OR_EXPIRED', 'Token is invalid or expired');
+        if (rec.type !== expectedType) throw badRequest('TOKEN_TYPE_MISMATCH', 'Token type mismatch');
         return rec; // НЕ позначаємо used
     }
 }
