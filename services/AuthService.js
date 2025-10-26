@@ -20,14 +20,12 @@ class AuthService {
             { expiresIn: "1h" }
         );
 
-        // Можеш вирішити: не пускати, якщо email не підтверджено
         if (!user.emailVerified) throw forbidden('EMAIL_NOT_VERIFIED', 'Email is not verified');
 
         return { token, user };
     }
 
     async logout(token) {
-        // можно реализовать blacklist для токенов
         return { message: "Logged out successfully" };
     }
 
@@ -57,7 +55,6 @@ class AuthService {
 
     async requestPasswordReset(email) {
         const user = await UserService.findByEmail(email);
-        // Не розкриваємо існування акаунта
         if (!user) return { message: "If account exists, email was sent" };
 
         const raw = await TokenService.mintSingleUseToken({
@@ -70,7 +67,6 @@ class AuthService {
     }
 
     async peekPasswordResetToken(rawToken) {
-        // читаємо, але НЕ позначаємо used
         const rec = await TokenService.peek(rawToken, 'password_reset');
         return rec;
     }
@@ -99,7 +95,6 @@ class AuthService {
         if (!user) throw badRequest('USER_NOT_FOUND', 'User not found');
         if (user.emailVerified) throw conflict('ALREADY_VERIFIED', 'Email already verified');
 
-        // rate-limit by last token created
         const last = await TokenRepository.findLastByUserAndType(user.id, 'email_verify');
         const cooldownSec = this.getResendCooldownSec();
         if (last && (Date.now() - new Date(last.created_at).getTime()) < cooldownSec * 1000) {
@@ -121,7 +116,6 @@ class AuthService {
         const user = await UserService.findByLogin(login);
         if (!user) throw badRequest('USER_NOT_FOUND', 'User not found');
 
-        // якщо вже підтверджено — забороняємо через цей ендпоінт
         if (user.emailVerified) throw forbidden('ALREADY_VERIFIED', 'Email already verified');
 
         const exists = await UserRepository.findByEmail(newEmail);

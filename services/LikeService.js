@@ -25,13 +25,6 @@ class LikeService {
         return likeRepo.findByEntity(entityType, entityId);
     }
 
-    /**
-     * Правила:
-     * - уникальный ключ (author_id, entity_id, entity_type) позволяет иметь ровно 1 запись на пользователя и сущность
-     * - если запись уже есть и тип совпадает — кидаем ошибку 'Already liked'
-     * - если запись есть, но тип другой — переключаем тип (update)
-     * - если записи нет — создаём
-     */
     async addLike(entityType, entityId, userId, type = 'like') {
         this.#assertEntityType(entityType);
         this.#assertReactionType(type);

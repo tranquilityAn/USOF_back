@@ -64,13 +64,11 @@ class UserController {
             const userId = req.user.id;
             const remove = (req.body && (req.body.remove === true || req.body.remove === 'true')) || false;
 
-            // Видалення без файлу
             if (remove && !req.file) {
                 await UserService.removeAvatar(userId);
                 return res.status(204).end();
             }
 
-            // Завантаження/заміна
             if (req.file && req.file.path) {
                 const updatedUser = await UserService.updateAvatar(userId, req.file);
                 return res.json(updatedUser.toJSON());

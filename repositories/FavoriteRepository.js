@@ -26,7 +26,6 @@ class FavoriteRepository {
     }
 
     async countByUser(userId, { includeInactiveOfOthers = false } = {}) {
-        // Якщо включаємо тільки видимі пости (active або власні)
         const where =
             includeInactiveOfOthers
                 ? "p.status = 'active' OR p.author_id = ?"

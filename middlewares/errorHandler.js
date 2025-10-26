@@ -10,19 +10,16 @@ function asAppError(err) {
         return new AppError(401, 'TOKEN_EXPIRED', 'Token expired');
     }
 
-    // БД
+    // DB
     const mapped = mapDbError(err);
     if (mapped !== err && mapped instanceof AppError) return mapped;
 
-    // already AppError
     if (err instanceof AppError) return err;
 
-    // explicit status на звичайному Error
     if (Number.isFinite(err?.status)) {
         return new AppError(err.status, err.code || 'ERROR', err.message || 'Error');
     }
 
-    // fallback — 500
     return new AppError(500, 'INTERNAL_ERROR', 'Something went wrong!');
 }
 
@@ -37,7 +34,6 @@ export function notFoundHandler(req, res, _next) {
 export function globalErrorHandler(err, req, res, _next) {
     const appErr = asAppError(err);
 
-    // лог — стислий у проді, повний у деві
     const isProd = process.env.NODE_ENV === 'production';
     const log = {
         time: new Date().toISOString(),

@@ -1,13 +1,12 @@
 import jwt from 'jsonwebtoken';
 
-// Проверка JWT
 export function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
         return res.status(401).json({ error: 'Authorization header missing' });
     }
 
-    const token = authHeader.split(' ')[1]; // 'Bearer token'
+    const token = authHeader.split(' ')[1];
     if (!token) {
         return res.status(401).json({ error: 'Token missing' });
     }
@@ -21,7 +20,6 @@ export function authMiddleware(req, res, next) {
     }
 }
 
-// Проверка роли пользователя
 export function roleMiddleware(allowedRoles = []) {
     return (req, res, next) => {
         if (!req.user) {
@@ -44,7 +42,7 @@ export function optionalAuth(req, res, next) {
         if (!err && payload) {
             req.user = { id: payload.id, role: payload.role };
         }
-        // даже если ошибка — продолжаем как гость
+
         next();
     });
 }

@@ -54,15 +54,12 @@ class UserService {
         return await UserRepository.delete(id);
     }
 
-    async updateAvatar(userId, avatar) {
-        // avatar може бути рядком (path) або об’єктом (req.file)
+    async updateAvatar(userId, avatar) {     
         let newName;
 
-        if (typeof avatar === 'string') {
-            // прийшов шлях типу 'uploads/avatars/2_...png'
+        if (typeof avatar === 'string') {         
             newName = path.basename(avatar);
-        } else if (avatar && typeof avatar === 'object') {
-            // прийшов об’єкт multer'а
+        } else if (avatar && typeof avatar === 'object') {           
             const filePath = avatar.filename || avatar.path;
             if (!filePath) {
                 throw badRequest('NO_FILE_PATH', 'No file path provided');

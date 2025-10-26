@@ -10,7 +10,6 @@ class AuthController {
             }
             const user = await UserService.register({ login, password, email, fullName });
 
-            // надсилаємо лист для підтвердження email
             await AuthService.sendEmailVerification(user);
 
             res.status(201).json({
@@ -64,7 +63,6 @@ class AuthController {
     async validatePasswordResetToken(req, res, next) {
         try {
             const { token } = req.params;
-            // просто пробуємо 'прочитати' токен без застосування
             await AuthService.peekPasswordResetToken(token);
             res.json({ valid: true });
         } catch (err) {
@@ -75,7 +73,7 @@ class AuthController {
     async confirmPasswordReset(req, res, next) {
         try {
             const { token } = req.params;
-            const { newPassword } = req.body;      // фронт шле JSON: { 'newPassword': '...' }
+            const { newPassword } = req.body;
             const result = await AuthService.confirmPasswordReset(token, newPassword);
             res.json(result);
         } catch (err) {
@@ -87,10 +85,8 @@ class AuthController {
         const { token } = req.params;
         const base = process.env.FRONTEND_BASE_URL || process.env.PUBLIC_BASE_URL;
         if (base) {
-            // 307, щоб зберегти метод, але тут GET, тому 302 теж ок
             return res.redirect(302, `${base}/reset?token=${token}`);
         }
-        // якщо фронт не заданий — відповімо JSON, щоб не було 'Cannot GET'
         return res.status(400).json({
             error: 'This is an API endpoint. Use POST /api/auth/password-reset/:token with { newPassword }.'
         });

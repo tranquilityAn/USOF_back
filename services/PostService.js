@@ -52,7 +52,6 @@ class PostService {
             throw e;
         }
 
-        // Перевірка видимості: юзер бачить active інших або свої (навіть inactive)
         if (!isAdmin) {
             const canSee = post.status === 'active' || post.authorId === currentUserId;
             if (!canSee) {
@@ -62,7 +61,6 @@ class PostService {
             }
         }
 
-        // isFavorite для конкретного поста
         post.isFavorite = currentUserId ? await favoriteRepo.exists(currentUserId, postId) : false;
 
         return post;
@@ -99,12 +97,10 @@ class PostService {
         const isAdmin = user.role === 'admin';
         const isAuthor = post.authorId === user.id;
 
-        // Формуємо allow-list полів за роллю
         const payload = { title, content, categories, status };
         const keys = Object.keys(payload).filter(k => payload[k] !== undefined);
 
         if (!keys.length) {
-            // нічого оновлювати — повернемо поточний стан
             const cats = await postRepo.findCategories(postId);
             const likes = await likeService.getLikes('post', postId);
             const comments = await commentService.getCommentsByPost(postId);
@@ -112,40 +108,34 @@ class PostService {
         }
 
         if (isAuthor && !isAdmin) {
-            // Автор: можна title/content/categories; НЕ можна status
             const forbidden = keys.filter(k => !['title', 'content', 'categories'].includes(k));
             if (forbidden.length) { const e = new Error('Forbidden field(s) for author: ' + forbidden.join(', ')); e.status = 403; throw e; }
         } else if (isAdmin && !isAuthor) {
-            // Адмін (не автор): можна status і categories; НЕ можна title/content
+            
             const forbidden = keys.filter(k => !['status', 'categories'].includes(k));
             if (forbidden.length) { const e = new Error('Forbidden field(s) for admin: ' + forbidden.join(', ')); e.status = 403; throw e; }
         } else if (isAdmin && isAuthor) {
-            // Якщо раптом адмін = автор — дозволимо все, окрім несумісних речей з ТЗ (контент адміном редагувати не треба, але як автор він може)
-            // За замовчуванням: дозволяємо ['title','content','categories','status'].
+                      
         } else {
             const e = new Error('Forbidden: not your post'); e.status = 403; throw e;
         }
-
-        // Валідації
+        
         if (title !== undefined && typeof title !== 'string') { const e = new Error('title must be string'); e.status = 400; throw e; }
         if (content !== undefined && typeof content !== 'string') { const e = new Error('content must be string'); e.status = 400; throw e; }
         if (categories !== undefined && !Array.isArray(categories)) { const e = new Error('categories must be an array of ids'); e.status = 400; throw e; }
         if (status !== undefined && !['active', 'inactive'].includes(status)) { const e = new Error('status must be "active" or "inactive"'); e.status = 400; throw e; }
-
-        // Оновлення основних полів
+   
         if (title !== undefined || content !== undefined || status !== undefined) {
             await postRepo.update(postId, { title, content, status });
         }
-
-        // Повна заміна категорій (за наявності)
+      
         if (categories !== undefined) {
             if (!(await postRepo.validateCategoryIds(categories))) {
                 const e = new Error('Some categories do not exist'); e.status = 400; throw e;
             }
             await postRepo.replaceCategories(postId, categories);
         }
-
-        // Повертаємо оновлений пост з категоріями та лічильниками
+      
         const updated = await postRepo.findById(postId);
         const cats = await postRepo.findCategories(postId);
         const likes = await likeService.getLikes('post', postId);

@@ -34,7 +34,6 @@ class PostController {
                 if (!Number.isNaN(parsed)) filters.authorId = parsed;
             }
 
-            //const isAdmin = req.user?.role === 'admin';
             const isAdmin = (req.user?.role || '').toLowerCase() === 'admin';
             const currentUserId = req.user?.id || null;
 

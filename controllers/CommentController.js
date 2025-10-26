@@ -1,7 +1,6 @@
 import CommentService from '../services/CommentService.js';
 
 class CommentController {
-    // GET /api/posts/:post_id/comments?page&limit  (only top-level)
     async getComments(req, res, next) {
         try {
             const postId = Number(req.params.post_id);
